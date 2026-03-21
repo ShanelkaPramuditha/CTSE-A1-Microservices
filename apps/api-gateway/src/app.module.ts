@@ -12,9 +12,11 @@ import {
   PRODUCT_SERVICE,
   ORDER_SERVICE,
   PAYMENT_SERVICE,
+  CART_SERVICE,
 } from '@app/common';
 import { AuthController } from './controllers/auth.controller';
 import { UserController } from './controllers/user.controller';
+import { CartController } from './controllers/cart.controller';
 import { JwtStrategy } from './guards/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
@@ -35,7 +37,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
       }),
     }),
   ],
-  controllers: [AuthController, UserController],
+  controllers: [AuthController, UserController, CartController],
   providers: [
     JwtStrategy,
     JwtAuthGuard,
@@ -88,6 +90,19 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
           options: {
             host: config.payment.host,
             port: config.payment.port,
+          },
+        }),
+    },
+    // TCP Client → Cart Service
+    {
+      provide: CART_SERVICE,
+      inject: [AppConfigService],
+      useFactory: (config: AppConfigService) =>
+        ClientProxyFactory.create({
+          transport: Transport.TCP,
+          options: {
+            host: config.cart.host,
+            port: config.cart.port,
           },
         }),
     },

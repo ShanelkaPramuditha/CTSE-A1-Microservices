@@ -6,17 +6,20 @@
   "scripts": {
     "build:gateway": "nest build api-gateway",
     "build:user": "nest build user-service",
+    "build:cart": "nest build cart-service",
     "build:product": "nest build product-service",
     "build:order": "nest build order-service",
     "build:payment": "nest build payment-service",
-    "build:all": "pnpm run build:gateway && pnpm run build:user && pnpm run build:product && pnpm run build:order && pnpm run build:payment",
+    "build:all": "pnpm run build:gateway && pnpm run build:user && pnpm run build:cart && pnpm run build:product && pnpm run build:order && pnpm run build:payment",
     "start:gateway": "nest start api-gateway",
     "start:user": "nest start user-service",
+    "start:cart": "nest start cart-service",
     "start:product": "nest start product-service",
     "start:order": "nest start order-service",
     "start:payment": "nest start payment-service",
     "start:dev:gateway": "nest start api-gateway --watch",
     "start:dev:user": "nest start user-service --watch",
+    "start:dev:cart": "nest start cart-service --watch",
     "start:dev:product": "nest start product-service --watch",
     "start:dev:order": "nest start order-service --watch",
     "start:dev:payment": "nest start payment-service --watch",
@@ -24,7 +27,7 @@
     "format": "prettier --write \"{apps,libs}/**/*.ts\"",
     "test": "jest",
     "test:cov": "jest --coverage",
-    "kill:all": "lsof -ti:3000,4001 | xargs -r kill -9"
+    "kill:all": "lsof -ti:3000,4001,4005 | xargs -r kill -9"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.17",

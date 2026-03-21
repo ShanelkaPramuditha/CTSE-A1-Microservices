@@ -75,3 +75,20 @@ export interface IStockValidationResult {
   requestedQuantity: number;
   price?: number;
 }
+
+export interface ICartItem {
+  productId: string;
+  productName: string;
+  price: number;
+  quantity: number;
+  image?: string;
+}
+
+export interface ICart {
+  _id?: string;
+  userId: string;
+  items: ICartItem[];
+  totalAmount: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+}

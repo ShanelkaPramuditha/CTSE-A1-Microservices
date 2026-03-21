@@ -163,3 +163,51 @@ export class ValidateStockDto {
   @Min(1)
   quantity: number;
 }
+
+// --- Cart DTOs ---
+
+export class AddCartItemDto {
+  @ApiProperty({ example: '65a1b2c3d4e5f6a7b8c9d0e1' })
+  @IsString()
+  @IsNotEmpty()
+  productId: string;
+
+  @ApiProperty({ example: 'Wireless Headphones' })
+  @IsString()
+  @IsNotEmpty()
+  productName: string;
+
+  @ApiProperty({ example: 99.99 })
+  @IsNumber()
+  @IsPositive()
+  price: number;
+
+  @ApiProperty({ example: 1 })
+  @IsNumber()
+  @Min(1)
+  quantity: number;
+
+  @ApiProperty({ example: 'https://example.com/image.jpg', required: false })
+  @IsString()
+  @IsOptional()
+  image?: string;
+}
+
+export class UpdateCartItemDto {
+  @ApiProperty({ example: '65a1b2c3d4e5f6a7b8c9d0e1' })
+  @IsString()
+  @IsNotEmpty()
+  productId: string;
+
+  @ApiProperty({ example: 3 })
+  @IsNumber()
+  @Min(1)
+  quantity: number;
+}
+
+export class RemoveCartItemDto {
+  @ApiProperty({ example: '65a1b2c3d4e5f6a7b8c9d0e1' })
+  @IsString()
+  @IsNotEmpty()
+  productId: string;
+}
