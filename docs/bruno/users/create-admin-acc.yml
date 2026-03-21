@@ -1,0 +1,24 @@
+info:
+  name: create-admin-acc
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/users/admin"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "John Doe",
+        "email": "john@example.com",
+        "password": "password123",
+        "role": "user"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
