@@ -54,6 +54,7 @@ async function bootstrap() {
     .addTag('Auth', 'User authentication endpoints')
     .addTag('Users', 'User management endpoints')
     .addTag('Products', 'Product catalog endpoints')
+    .addTag('Cart', 'Shopping cart endpoints')
     .addTag('Orders', 'Order management endpoints')
     .build();
 

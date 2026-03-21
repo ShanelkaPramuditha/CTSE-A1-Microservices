@@ -46,6 +46,14 @@ export class AppConfigService {
     };
   }
 
+  get cart() {
+    return {
+      host: this.configService.get('CART_SERVICE_HOST', { infer: true }),
+      port: this.configService.get('CART_SERVICE_PORT', { infer: true }),
+      mongoUri: this.configService.get('MONGO_URI_CART', { infer: true }),
+    };
+  }
+
   get jwt() {
     return {
       secret: this.configService.get('JWT_SECRET', { infer: true }),

@@ -19,6 +19,22 @@ services:
       - ecommerce-network
     restart: unless-stopped
 
+  # --- Cart Service ---
+  cart-service:
+    build:
+      context: .
+      dockerfile: apps/cart-service/Dockerfile
+    container_name: ecommerce-cart-service
+    environment:
+      - CART_SERVICE_HOST=0.0.0.0
+      - CART_SERVICE_PORT=4005
+      - MONGO_URI_CART=mongodb://mongo:27017/cart-db
+    ports:
+      - '4005:4005'
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
   # --- API Gateway ---
   api-gateway:
     build:
@@ -35,12 +51,15 @@ services:
       - ORDER_SERVICE_PORT=4003
       - PAYMENT_SERVICE_HOST=payment-service
       - PAYMENT_SERVICE_PORT=4004
+      - CART_SERVICE_HOST=cart-service
+      - CART_SERVICE_PORT=4005
       - JWT_SECRET=${JWT_SECRET:-supersecret}
       - JWT_EXPIRATION=${JWT_EXPIRATION:-3600s}
     ports:
       - '3000:3000'
     depends_on:
       - user-service
+      - cart-service
     networks:
       - ecommerce-network
     restart: unless-stopped
