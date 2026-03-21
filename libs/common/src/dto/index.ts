@@ -11,6 +11,8 @@ import {
   IsArray,
   ValidateNested,
   IsPositive,
+  IsOptional,
+  IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
@@ -31,6 +33,11 @@ export class RegisterUserDto {
   @IsString()
   @MinLength(6)
   password: string;
+
+  @ApiProperty({ enum: ['user', 'admin'], default: 'user', required: false })
+  @IsOptional()
+  @IsEnum(['user', 'admin'])
+  role?: string;
 }
 
 export class LoginUserDto {

@@ -15,7 +15,7 @@ import * as bcrypt from 'bcryptjs';
 import { RpcException } from '@nestjs/microservices';
 import { User, UserDocument } from './schemas/user.schema';
 import { RegisterUserDto, LoginUserDto } from '@app/common/dto';
-import { IJwtPayload } from '@app/common/interfaces';
+import { IJwtPayload, UserRole } from '@app/common/interfaces';
 
 @Injectable()
 export class UserService {
@@ -31,7 +31,7 @@ export class UserService {
    * Register a new user with hashed password
    */
   async register(registerUserDto: RegisterUserDto) {
-    const { email, name, password } = registerUserDto;
+    const { email, name, password, role } = registerUserDto;
 
     // Check if user already exists
     const existingUser = await this.userModel.findOne({ email }).exec();
@@ -49,6 +49,7 @@ export class UserService {
       email,
       name,
       password: hashedPassword,
+      role: role || UserRole.USER,
     });
 
     const savedUser = await user.save();
@@ -58,6 +59,7 @@ export class UserService {
       _id: savedUser._id,
       email: savedUser.email,
       name: savedUser.name,
+      role: savedUser.role as UserRole,
       createdAt: savedUser.createdAt,
     };
   }
@@ -84,6 +86,7 @@ export class UserService {
     const payload: IJwtPayload = {
       sub: user._id.toString(),
       email: user.email,
+      role: user.role as UserRole,
     };
 
     const accessToken = this.jwtService.sign(payload);
@@ -96,6 +99,7 @@ export class UserService {
         _id: user._id,
         email: user.email,
         name: user.name,
+        role: user.role as UserRole,
       },
     };
   }
@@ -117,6 +121,7 @@ export class UserService {
       _id: user._id,
       email: user.email,
       name: user.name,
+      role: user.role as UserRole,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

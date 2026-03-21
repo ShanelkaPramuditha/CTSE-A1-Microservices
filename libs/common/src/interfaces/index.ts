@@ -2,11 +2,17 @@
 // Shared Interfaces
 // ============================================
 
+export enum UserRole {
+  USER = 'user',
+  ADMIN = 'admin',
+}
+
 export interface IUser {
   _id?: string;
   email: string;
   name: string;
   password?: string;
+  role?: UserRole;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -53,6 +59,7 @@ export interface IPayment {
 export interface IJwtPayload {
   sub: string;
   email: string;
+  role: UserRole;
 }
 
 export interface IStockValidation {
