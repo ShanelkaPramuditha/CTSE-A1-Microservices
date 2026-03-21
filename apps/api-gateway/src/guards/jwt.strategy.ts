@@ -28,13 +28,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * This is called automatically by Passport after token verification
    */
   async validate(payload: IJwtPayload) {
-    if (!payload.sub || !payload.email) {
+    if (!payload.sub || !payload.email || !payload.role) {
       throw new UnauthorizedException('Invalid token payload');
     }
 
     return {
       userId: payload.sub,
       email: payload.email,
+      role: payload.role,
     };
   }
 }

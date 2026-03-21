@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   Res,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ClientProxy } from '@nestjs/microservices';
@@ -17,6 +18,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
 import { USER_SERVICE, USER_PATTERNS } from '@app/common/constants';
 import { RegisterUserDto, LoginUserDto } from '@app/common/dto';
+import { UserRole } from '@app/common/interfaces';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -35,6 +37,13 @@ export class AuthController {
   @ApiResponse({ status: 409, description: 'User already exists' })
   async register(@Body() registerUserDto: RegisterUserDto) {
     this.logger.log(`Registration request: ${registerUserDto.email}`);
+    // Prevent creating admin accounts via public auth endpoint
+    if (registerUserDto.role === UserRole.ADMIN) {
+      throw new ForbiddenException(
+        'Admin role can only be created by an existing admin',
+      );
+    }
+
     return firstValueFrom(
       this.userClient.send(USER_PATTERNS.REGISTER, registerUserDto),
     );

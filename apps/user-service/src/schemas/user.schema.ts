@@ -3,6 +3,7 @@
 // ============================================
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import { UserRole } from '@app/common';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -17,11 +18,11 @@ export class User {
   @Prop({ required: true })
   password: string;
 
+  @Prop({ type: String, enum: UserRole, default: UserRole.USER })
+  role: string;
+
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
-
-// Index for faster email lookups
-UserSchema.index({ email: 1 });
