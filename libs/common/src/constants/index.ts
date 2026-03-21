@@ -13,6 +13,7 @@ export const USER_PATTERNS = {
   REGISTER: 'register_user',
   LOGIN: 'login_user',
   GET_PROFILE: 'get_user_profile',
+  UPDATE_PROFILE: 'update_user_profile',
 } as const;
 
 // --- Product Service TCP Patterns ---

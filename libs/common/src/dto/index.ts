@@ -40,6 +40,21 @@ export class RegisterUserDto {
   role?: string;
 }
 
+export class UpdateUserDto {
+  @ApiProperty({ example: 'John Smith', required: false })
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @ApiProperty({
+    example: 'https://www.gravatar.com/avatar/...',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  avatar?: string;
+}
+
 export class LoginUserDto {
   @ApiProperty({ example: 'john@example.com' })
   @IsEmail()
