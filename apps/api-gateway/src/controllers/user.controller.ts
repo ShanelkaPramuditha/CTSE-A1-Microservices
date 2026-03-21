@@ -5,6 +5,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Inject,
   Logger,
@@ -19,7 +20,11 @@ import {
 } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
 import { USER_SERVICE, USER_PATTERNS } from '@app/common/constants';
-import { RegisterUserDto } from '@app/common/dto';
+import {
+  RegisterUserDto,
+  UpdateUserDto,
+  ChangePasswordDto,
+} from '@app/common/dto';
 import { UserRole } from '@app/common/interfaces';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
@@ -48,6 +53,53 @@ export class UserController {
     return firstValueFrom(
       this.userClient.send(USER_PATTERNS.GET_PROFILE, {
         userId: user.userId,
+      }),
+    );
+  }
+
+  /**
+   * PATCH /api/v1/users/profile
+   * Update current user profile
+   */
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiCookieAuth('Authentication')
+  @ApiOperation({ summary: 'Update current user profile' })
+  @ApiResponse({ status: 200, description: 'Profile updated' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async updateProfile(
+    @CurrentUser() user: { userId: string },
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    this.logger.log(`Update profile for user: ${user.userId}`);
+    return firstValueFrom(
+      this.userClient.send(USER_PATTERNS.UPDATE_PROFILE, {
+        userId: user.userId,
+        updateUserDto,
+      }),
+    );
+  }
+
+  /**
+   * PATCH /api/v1/users/change-password
+   * Change current user password
+   */
+  @Patch('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiCookieAuth('Authentication')
+  @ApiOperation({ summary: 'Change current user password' })
+  @ApiResponse({ status: 200, description: 'Password changed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 400, description: 'Invalid old password' })
+  async changePassword(
+    @CurrentUser() user: { userId: string },
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    this.logger.log(`Change password for user: ${user.userId}`);
+    return firstValueFrom(
+      this.userClient.send(USER_PATTERNS.CHANGE_PASSWORD, {
+        userId: user.userId,
+        changePasswordDto,
       }),
     );
   }

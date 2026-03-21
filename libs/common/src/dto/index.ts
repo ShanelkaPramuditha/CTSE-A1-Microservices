@@ -40,6 +40,39 @@ export class RegisterUserDto {
   role?: string;
 }
 
+export class UpdateUserDto {
+  @ApiProperty({ example: 'John Smith', required: false })
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @ApiProperty({ example: 'john.smith@example.com', required: false })
+  @IsEmail()
+  @IsOptional()
+  email?: string;
+
+  @ApiProperty({
+    example: 'https://www.gravatar.com/avatar/...',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  avatar?: string;
+}
+
+export class ChangePasswordDto {
+  @ApiProperty({ example: 'oldPassword123' })
+  @IsString()
+  @IsNotEmpty()
+  oldPassword: string;
+
+  @ApiProperty({ example: 'newPassword123', minLength: 6 })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  newPassword: string;
+}
+
 export class LoginUserDto {
   @ApiProperty({ example: 'john@example.com' })
   @IsEmail()

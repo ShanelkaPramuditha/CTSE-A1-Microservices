@@ -1,0 +1,21 @@
+info:
+  name: update-user
+  type: http
+  seq: 2
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/users/profile"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "John Doe"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
