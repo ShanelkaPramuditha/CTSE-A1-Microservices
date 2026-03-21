@@ -15,7 +15,12 @@ import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 import { RpcException } from '@nestjs/microservices';
 import { User, UserDocument } from './schemas/user.schema';
-import { RegisterUserDto, LoginUserDto, UpdateUserDto } from '@app/common/dto';
+import {
+  RegisterUserDto,
+  LoginUserDto,
+  UpdateUserDto,
+  ChangePasswordDto,
+} from '@app/common/dto';
 import { IJwtPayload, UserRole } from '@app/common/interfaces';
 
 @Injectable()
@@ -153,12 +158,28 @@ export class UserService {
       throw new RpcException(new NotFoundException('User not found'));
     }
 
+    // If email is provided, verify uniqueness and update gravatar
+    if (updateUserDto.email && updateUserDto.email !== user.email) {
+      const existingUser = await this.userModel
+        .findOne({ email: updateUserDto.email })
+        .exec();
+      if (existingUser) {
+        throw new RpcException(new ConflictException('Email already in use'));
+      }
+      user.email = updateUserDto.email;
+
+      // Regenerate gravatar if avatar not manually provided in this update
+      if (!updateUserDto.avatar) {
+        user.avatar = this.createGravatarUrl(user.email);
+      }
+    }
+
     // If name is provided, update it
     if (updateUserDto.name) {
       user.name = updateUserDto.name;
     }
 
-    // If avatar is provided, update it, otherwise regenerate if email changed (though email update not implemented here yet)
+    // If avatar is provided, update it
     if (updateUserDto.avatar) {
       user.avatar = updateUserDto.avatar;
     }
@@ -174,5 +195,30 @@ export class UserService {
       role: updatedUser.role as UserRole,
       updatedAt: updatedUser.updatedAt,
     };
+  }
+
+  /**
+   * Change user password
+   */
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
+    const { oldPassword, newPassword } = changePasswordDto;
+    const user = await this.userModel.findById(userId).exec();
+
+    if (!user) {
+      throw new RpcException(new NotFoundException('User not found'));
+    }
+
+    // Verify old password
+    const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isPasswordValid) {
+      throw new RpcException(new UnauthorizedException('Invalid old password'));
+    }
+
+    // Hash and save new password
+    user.password = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
+    await user.save();
+
+    this.logger.log(`Password changed for user: ${user.email}`);
+    return { success: true, message: 'Password changed successfully' };
   }
 }

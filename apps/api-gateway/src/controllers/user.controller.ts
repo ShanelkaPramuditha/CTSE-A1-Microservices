@@ -20,7 +20,11 @@ import {
 } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
 import { USER_SERVICE, USER_PATTERNS } from '@app/common/constants';
-import { RegisterUserDto, UpdateUserDto } from '@app/common/dto';
+import {
+  RegisterUserDto,
+  UpdateUserDto,
+  ChangePasswordDto,
+} from '@app/common/dto';
 import { UserRole } from '@app/common/interfaces';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
@@ -72,6 +76,30 @@ export class UserController {
       this.userClient.send(USER_PATTERNS.UPDATE_PROFILE, {
         userId: user.userId,
         updateUserDto,
+      }),
+    );
+  }
+
+  /**
+   * PATCH /api/v1/users/change-password
+   * Change current user password
+   */
+  @Patch('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiCookieAuth('Authentication')
+  @ApiOperation({ summary: 'Change current user password' })
+  @ApiResponse({ status: 200, description: 'Password changed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 400, description: 'Invalid old password' })
+  async changePassword(
+    @CurrentUser() user: { userId: string },
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    this.logger.log(`Change password for user: ${user.userId}`);
+    return firstValueFrom(
+      this.userClient.send(USER_PATTERNS.CHANGE_PASSWORD, {
+        userId: user.userId,
+        changePasswordDto,
       }),
     );
   }

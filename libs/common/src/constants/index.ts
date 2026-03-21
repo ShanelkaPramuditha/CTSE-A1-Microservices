@@ -14,6 +14,7 @@ export const USER_PATTERNS = {
   LOGIN: 'login_user',
   GET_PROFILE: 'get_user_profile',
   UPDATE_PROFILE: 'update_user_profile',
+  CHANGE_PASSWORD: 'change_password',
 } as const;
 
 // --- Product Service TCP Patterns ---
