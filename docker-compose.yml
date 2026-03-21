@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # --- User Service ---
+  user-service:
+    build:
+      context: .
+      dockerfile: apps/user-service/Dockerfile
+    container_name: ecommerce-user-service
+    environment:
+      - USER_SERVICE_HOST=0.0.0.0
+      - USER_SERVICE_PORT=4001
+      - MONGO_URI_USER=mongodb://mongo:27017/user-db
+      - JWT_SECRET=${JWT_SECRET:-supersecret}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-3600s}
+    ports:
+      - '4001:4001'
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+  # --- API Gateway ---
+  api-gateway:
+    build:
+      context: .
+      dockerfile: apps/api-gateway/Dockerfile
+    container_name: ecommerce-api-gateway
+    environment:
+      - PORT_API_GATEWAY=3000
+      - USER_SERVICE_HOST=user-service
+      - USER_SERVICE_PORT=4001
+      - PRODUCT_SERVICE_HOST=product-service
+      - PRODUCT_SERVICE_PORT=4002
+      - ORDER_SERVICE_HOST=order-service
+      - ORDER_SERVICE_PORT=4003
+      - PAYMENT_SERVICE_HOST=payment-service
+      - PAYMENT_SERVICE_PORT=4004
+      - JWT_SECRET=${JWT_SECRET:-supersecret}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-3600s}
+    ports:
+      - '3000:3000'
+    depends_on:
+      - user-service
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
+    driver: local
+
+networks:
+  ecommerce-network:
+    driver: bridge
