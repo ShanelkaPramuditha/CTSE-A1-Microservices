@@ -55,16 +55,21 @@ services:
       - ecommerce-network
     restart: unless-stopped
 
-  # --- Cart Service ---
-  cart-service:
+  # --- Order Service ---
+  order-service:
     build:
       context: .
-      dockerfile: apps/cart-service/Dockerfile
-    container_name: ecommerce-cart-service
+      dockerfile: apps/order-service/Dockerfile
+    container_name: ecommerce-order-service
     environment:
       - CART_SERVICE_HOST=0.0.0.0
       - CART_SERVICE_PORT=4005
       - MONGO_URI_CART=mongodb://mongo:27017/cart-db
+      - MONGO_URI_ORDER=mongodb://mongo:27017/order-db
+      - PRODUCT_SERVICE_HOST=product-service
+      - PRODUCT_SERVICE_PORT=4002
+      - PAYMENT_SERVICE_HOST=payment-service
+      - PAYMENT_SERVICE_PORT=4004
     ports:
       - '4005:4005'
     networks:
@@ -86,10 +91,10 @@ services:
       - PRODUCT_SERVICE_HOST=product-service
       - PRODUCT_SERVICE_PORT=4002
       - ORDER_SERVICE_HOST=order-service
-      - ORDER_SERVICE_PORT=4003
+      - ORDER_SERVICE_PORT=4005
       - PAYMENT_SERVICE_HOST=payment-service
       - PAYMENT_SERVICE_PORT=4004
-      - CART_SERVICE_HOST=cart-service
+      - CART_SERVICE_HOST=order-service
       - CART_SERVICE_PORT=4005
       - JWT_SECRET=${JWT_SECRET:-supersecret}
       - JWT_EXPIRATION=${JWT_EXPIRATION:-3600s}
@@ -99,7 +104,7 @@ services:
       - mongo
       - user-service
       - product-service
-      - cart-service
+      - order-service
     networks:
       - ecommerce-network
     restart: unless-stopped

@@ -26,13 +26,13 @@
         "tsConfigPath": "apps/user-service/tsconfig.app.json"
       }
     },
-    "cart-service": {
+    "order-service": {
       "type": "application",
-      "root": "apps/cart-service",
+      "root": "apps/order-service",
       "entryFile": "main",
-      "sourceRoot": "apps/cart-service/src",
+      "sourceRoot": "apps/order-service/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/cart-service/tsconfig.app.json"
+        "tsConfigPath": "apps/order-service/tsconfig.app.json"
       }
     },
     "product-service": {

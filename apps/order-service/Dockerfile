@@ -1,6 +1,3 @@
-# ============================================
-# Order Service - Dockerfile
-# ============================================
 FROM node:20-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -31,6 +28,6 @@ RUN pnpm install --frozen-lockfile --prod
 COPY --from=builder /app/dist ./dist
 COPY .env ./
 
-EXPOSE 4003
+EXPOSE 4005
 
 CMD ["node", "dist/apps/order-service/main.js"]
