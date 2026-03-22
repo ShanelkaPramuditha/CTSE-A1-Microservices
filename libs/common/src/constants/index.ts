@@ -33,6 +33,11 @@ export const ORDER_PATTERNS = {
   UPDATE_STATUS: 'update_order_status',
   /** Checkout: reads the user's cart, validates stock, places order, clears cart, processes payment */
   CHECKOUT: 'checkout_order',
+  /**
+   * Batch: for each productId, count distinct orders and sum ordered quantities
+   * (non-cancelled / non-failed pipeline statuses — see order service).
+   */
+  GET_PRODUCTS_ORDER_STATS: 'get_products_order_stats',
 } as const;
 
 // --- Payment Service TCP Patterns ---

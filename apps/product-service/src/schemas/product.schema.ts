@@ -23,6 +23,9 @@ export class Product {
   @Prop({ required: true, trim: true })
   category: string;
 
+  @Prop({ trim: true })
+  imageUrl?: string;
+
   createdAt?: Date;
   updatedAt?: Date;
 }
