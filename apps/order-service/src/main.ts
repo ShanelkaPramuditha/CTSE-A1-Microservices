@@ -1,27 +1,27 @@
 // ============================================
-// Cart Service - Entry Point
+// Order Service - Entry Point
 // ============================================
 import { NestFactory } from '@nestjs/core';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { Logger } from '@nestjs/common';
 import { AppConfigService } from '@app/common';
-import { CartModule } from './cart.module';
+import { OrderModule } from './order.module';
 
 async function bootstrap() {
-  const logger = new Logger('CartService');
+  const logger = new Logger('OrderService');
 
-  // Create a temporary app context to access ConfigService
-  const appContext = await NestFactory.createApplicationContext(CartModule);
+  // Temporary context to read config, then close it
+  const appContext = await NestFactory.createApplicationContext(OrderModule);
   const config = appContext.get(AppConfigService);
 
-  const host = config.cart.host;
-  const port = config.cart.port;
+  const host = config.order.host;
+  const port = config.order.port;
 
   await appContext.close();
 
-  // Create the TCP microservice
+  // Create TCP microservice
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
-    CartModule,
+    OrderModule,
     {
       transport: Transport.TCP,
       options: {
@@ -32,7 +32,8 @@ async function bootstrap() {
   );
 
   await app.listen();
-  logger.log(`🚀 Cart Service is listening on ${host}:${port} (TCP)`);
+  logger.log(`🛒 Order Service listening on ${host}:${port}`);
+  logger.log(`   Handles: cart (add/update/remove/clear) + checkout + orders`);
 }
 
 bootstrap();

@@ -155,6 +155,11 @@ export class ProcessPaymentDto {
   @IsNotEmpty()
   orderId: string;
 
+  @ApiProperty({ example: '65a1b2c3d4e5f6a7b8c9d0e1' })
+  @IsString()
+  @IsNotEmpty()
+  userId: string;
+
   @ApiProperty({ example: 199.98 })
   @IsNumber()
   @IsPositive()

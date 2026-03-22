@@ -1,112 +1,101 @@
+name: ecommerce-services
+
+x-service-env: &service-env
+  PORT_API_GATEWAY: ${PORT_API_GATEWAY:-3000}
+  USER_SERVICE_HOST: ${USER_SERVICE_HOST:-ecommerce-user-service}
+  USER_SERVICE_PORT: ${USER_SERVICE_PORT:-4001}
+  PRODUCT_SERVICE_HOST: ${PRODUCT_SERVICE_HOST:-ecommerce-product-service}
+  PRODUCT_SERVICE_PORT: ${PRODUCT_SERVICE_PORT:-4002}
+  ORDER_SERVICE_HOST: ${ORDER_SERVICE_HOST:-ecommerce-order-service}
+  ORDER_SERVICE_PORT: ${ORDER_SERVICE_PORT:-4003}
+  PAYMENT_SERVICE_HOST: ${PAYMENT_SERVICE_HOST:-ecommerce-payment-service}
+  PAYMENT_SERVICE_PORT: ${PAYMENT_SERVICE_PORT:-4004}
+  MONGO_URI_USER: ${MONGO_URI_USER}
+  MONGO_URI_PRODUCT: ${MONGO_URI_PRODUCT}
+  MONGO_URI_ORDER: ${MONGO_URI_ORDER}
+  MONGO_URI_PAYMENT: ${MONGO_URI_PAYMENT}
+  JWT_SECRET: ${JWT_SECRET}
+  JWT_EXPIRATION: ${JWT_EXPIRATION:-3600s}
+
 services:
-  # --- MongoDB ---
-  mongo:
-    image: mongo:7
-    container_name: ecommerce-mongo
-    ports:
-      - '27017:27017'
-    volumes:
-      - mongo-data:/data/db
-    networks:
-      - ecommerce-network
-    restart: unless-stopped
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # --- User Service ---
   user-service:
-    build:
-      context: .
-      dockerfile: apps/user-service/Dockerfile
+    image: ${IMAGE_REGISTRY:-ghcr.io/shanelkapramuditha}/user-service:${IMAGE_TAG:-latest}
     container_name: ecommerce-user-service
+    pull_policy: always
+    restart: unless-stopped
     environment:
-      - USER_SERVICE_HOST=0.0.0.0
-      - USER_SERVICE_PORT=4001
-      - MONGO_URI_USER=mongodb://mongo:27017/user-db
-      - JWT_SECRET=${JWT_SECRET:-supersecret}
-      - JWT_EXPIRATION=${JWT_EXPIRATION:-3600s}
-    ports:
-      - '4001:4001'
+      <<: *service-env
+    volumes:
+      - user-service-data:/app/logs
     networks:
       - ecommerce-network
-    depends_on:
-      - mongo
-    restart: unless-stopped
 
-  # --- Product Service ---
   product-service:
-    build:
-      context: .
-      dockerfile: apps/product-service/Dockerfile
+    image: ${IMAGE_REGISTRY:-ghcr.io/shanelkapramuditha}/product-service:${IMAGE_TAG:-latest}
     container_name: ecommerce-product-service
+    pull_policy: always
+    restart: unless-stopped
     environment:
-      - PRODUCT_SERVICE_HOST=0.0.0.0
-      - PRODUCT_SERVICE_PORT=4002
-      - MONGO_URI_PRODUCT=mongodb://mongo:27017/product-db
-    ports:
-      - '4002:4002'
-    depends_on:
-      mongo:
-        condition: service_healthy
+      <<: *service-env
+    volumes:
+      - product-service-data:/app/logs
     networks:
       - ecommerce-network
-    restart: unless-stopped
 
-  # --- Cart Service ---
-  cart-service:
-    build:
-      context: .
-      dockerfile: apps/cart-service/Dockerfile
-    container_name: ecommerce-cart-service
+  order-service:
+    image: ${IMAGE_REGISTRY:-ghcr.io/shanelkapramuditha}/order-service:${IMAGE_TAG:-latest}
+    container_name: ecommerce-order-service
+    pull_policy: always
+    restart: unless-stopped
     environment:
-      - CART_SERVICE_HOST=0.0.0.0
-      - CART_SERVICE_PORT=4005
-      - MONGO_URI_CART=mongodb://mongo:27017/cart-db
-    ports:
-      - '4005:4005'
+      <<: *service-env
+    volumes:
+      - order-service-data:/app/logs
     networks:
       - ecommerce-network
-    depends_on:
-      - mongo
-    restart: unless-stopped
 
-  # --- API Gateway ---
+  payment-service:
+    image: ${IMAGE_REGISTRY:-ghcr.io/shanelkapramuditha}/payment-service:${IMAGE_TAG:-latest}
+    container_name: ecommerce-payment-service
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      <<: *service-env
+    volumes:
+      - payment-service-data:/app/logs
+    networks:
+      - ecommerce-network
+
   api-gateway:
-    build:
-      context: .
-      dockerfile: apps/api-gateway/Dockerfile
+    image: ${IMAGE_REGISTRY:-ghcr.io/shanelkapramuditha}/api-gateway:${IMAGE_TAG:-latest}
     container_name: ecommerce-api-gateway
+    pull_policy: always
+    restart: unless-stopped
     environment:
-      - PORT_API_GATEWAY=3000
-      - USER_SERVICE_HOST=user-service
-      - USER_SERVICE_PORT=4001
-      - PRODUCT_SERVICE_HOST=product-service
-      - PRODUCT_SERVICE_PORT=4002
-      - ORDER_SERVICE_HOST=order-service
-      - ORDER_SERVICE_PORT=4003
-      - PAYMENT_SERVICE_HOST=payment-service
-      - PAYMENT_SERVICE_PORT=4004
-      - CART_SERVICE_HOST=cart-service
-      - CART_SERVICE_PORT=4005
-      - JWT_SECRET=${JWT_SECRET:-supersecret}
-      - JWT_EXPIRATION=${JWT_EXPIRATION:-3600s}
+      <<: *service-env
     ports:
-      - '3000:3000'
+      - ${PORT_API_GATEWAY:-3000}:3000
+    volumes:
+      - api-gateway-data:/app/logs
     depends_on:
-      - mongo
-      - user-service
-      - product-service
-      - cart-service
+      user-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
     networks:
       - ecommerce-network
-    restart: unless-stopped
 
 volumes:
-  mongo-data:
-    driver: local
+  user-service-data:
+  product-service-data:
+  order-service-data:
+  payment-service-data:
+  api-gateway-data:
+
 
 networks:
   ecommerce-network:

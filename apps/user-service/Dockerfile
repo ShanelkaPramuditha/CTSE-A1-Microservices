@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -16,7 +16,7 @@ COPY apps/user-service/ ./apps/user-service/
 RUN npx nest build user-service
 
 # --- Production stage ---
-FROM node:20-alpine
+FROM --platform=$TARGETPLATFORM node:20-alpine
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -26,8 +26,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 
 COPY --from=builder /app/dist ./dist
-COPY .env ./
 
 EXPOSE 4001
 
-CMD ["node", "dist/apps/user-service/main.js"]
+CMD ["node", "dist/apps/user-service/apps/user-service/src/main.js"]

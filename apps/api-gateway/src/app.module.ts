@@ -17,6 +17,7 @@ import {
 import { AuthController } from './controllers/auth.controller';
 import { UserController } from './controllers/user.controller';
 import { CartController } from './controllers/cart.controller';
+import { OrderController } from './controllers/order.controller';
 import { ProductController } from './controllers/product.controller';
 import { JwtStrategy } from './guards/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -38,7 +39,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
       }),
     }),
   ],
-  controllers: [AuthController, UserController, ProductController, CartController],
+  controllers: [AuthController, UserController, ProductController, CartController, OrderController],
   providers: [
     JwtStrategy,
     JwtAuthGuard,
@@ -69,6 +70,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
         }),
     },
     // TCP Client → Order Service
+    // NOTE: Cart and Order are both handled by order-service
     {
       provide: ORDER_SERVICE,
       inject: [AppConfigService],
@@ -94,7 +96,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
           },
         }),
     },
-    // TCP Client → Cart Service
+    // TCP Client → Cart Service (same as order-service — merged)
     {
       provide: CART_SERVICE,
       inject: [AppConfigService],
@@ -102,8 +104,8 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
         ClientProxyFactory.create({
           transport: Transport.TCP,
           options: {
-            host: config.cart.host,
-            port: config.cart.port,
+            host: config.order.host,
+            port: config.order.port,
           },
         }),
     },

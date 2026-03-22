@@ -31,6 +31,8 @@ export const ORDER_PATTERNS = {
   CREATE: 'create_order',
   GET_ALL: 'get_orders',
   UPDATE_STATUS: 'update_order_status',
+  /** Checkout: reads the user's cart, validates stock, places order, clears cart, processes payment */
+  CHECKOUT: 'checkout_order',
 } as const;
 
 // --- Payment Service TCP Patterns ---

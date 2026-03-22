@@ -1,23 +1,22 @@
+# ============================================
+# Order Service - Dockerfile
+# ============================================
 FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
-# Copy root package files
 COPY package.json pnpm-lock.yaml ./
 COPY tsconfig.json ./
 COPY nest-cli.json ./
 
-# Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
 COPY libs/ ./libs/
-COPY apps/api-gateway/ ./apps/api-gateway/
+COPY apps/order-service/ ./apps/order-service/
 
-# Build the application
-RUN npx nest build api-gateway
+RUN npx nest build order-service
 
 # --- Production stage ---
 FROM --platform=$TARGETPLATFORM node:20-alpine
@@ -29,9 +28,8 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 
-# Copy built output
 COPY --from=builder /app/dist ./dist
 
-EXPOSE 3000
+EXPOSE 4003
 
-CMD ["node", "dist/apps/api-gateway/apps/api-gateway/src/main.js"]
+CMD ["node", "dist/apps/order-service/apps/order-service/src/main.js"]

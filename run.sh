@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define services based on the package.json scripts
-SERVICES=("api-gateway" "user-service" "cart-service" "product-service" "order-service" "payment-service")
+SERVICES=("api-gateway" "user-service" "order-service" "product-service" "payment-service")
 
 start_services() {
     echo "Starting all services in development mode..."
@@ -11,7 +11,6 @@ start_services() {
         case $service in
             api-gateway) script="start:dev:gateway" ;;
             user-service) script="start:dev:user" ;;
-            cart-service) script="start:dev:cart" ;;
             product-service) script="start:dev:product" ;;
             order-service) script="start:dev:order" ;;
             payment-service) script="start:dev:payment" ;;
