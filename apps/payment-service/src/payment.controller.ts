@@ -24,4 +24,10 @@ export class PaymentController {
     );
     return this.paymentService.processPayment(processPaymentDto);
   }
+
+  @MessagePattern(PAYMENT_PATTERNS.GET_BY_USER)
+  async getPaymentsByUser(@Payload() data: { userId: string }) {
+    this.logger.log(`Fetching payments for user: ${data.userId}`);
+    return this.paymentService.getPaymentsByUser(data.userId);
+  }
 }

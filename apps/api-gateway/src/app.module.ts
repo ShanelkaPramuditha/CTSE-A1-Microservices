@@ -21,6 +21,7 @@ import { OrderController } from './controllers/order.controller';
 import { ProductController } from './controllers/product.controller';
 import { JwtStrategy } from './guards/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { UserService } from './services/user.service';
 
 @Module({
   imports: [
@@ -39,10 +40,17 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
       }),
     }),
   ],
-  controllers: [AuthController, UserController, ProductController, CartController, OrderController],
+  controllers: [
+    AuthController,
+    UserController,
+    ProductController,
+    CartController,
+    OrderController,
+  ],
   providers: [
     JwtStrategy,
     JwtAuthGuard,
+    UserService,
     // TCP Client → User Service
     {
       provide: USER_SERVICE,

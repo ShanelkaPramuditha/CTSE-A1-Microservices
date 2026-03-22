@@ -10,6 +10,7 @@ import {
   Inject,
   Logger,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import {
@@ -17,9 +18,10 @@ import {
   ApiOperation,
   ApiResponse,
   ApiCookieAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
-import { USER_SERVICE, USER_PATTERNS } from '@app/common/constants';
+import { USER_PATTERNS, USER_SERVICE } from '@app/common/constants';
 import {
   RegisterUserDto,
   UpdateUserDto,
@@ -30,13 +32,17 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { CurrentUser } from '../decorators/current-user.decorator';
+import { UserService } from '../services/user.service';
 
 @ApiTags('Users')
 @Controller('users')
 export class UserController {
   private readonly logger = new Logger(UserController.name);
 
-  constructor(@Inject(USER_SERVICE) private readonly userClient: ClientProxy) {}
+  constructor(
+    @Inject(USER_SERVICE) private readonly userClient: ClientProxy,
+    private readonly userService: UserService,
+  ) {}
 
   /**
    * GET /api/v1/users/profile
@@ -55,6 +61,32 @@ export class UserController {
         userId: user.userId,
       }),
     );
+  }
+
+  /**
+   * GET /api/v1/users/dashboard-stats
+   * Get user dashboard stats aggregated across services
+   */
+  @Get('dashboard-stats')
+  @UseGuards(JwtAuthGuard)
+  @ApiCookieAuth('Authentication')
+  @ApiOperation({ summary: 'Get current user dashboard stats' })
+  @ApiQuery({
+    name: 'range',
+    required: false,
+    enum: ['7d', '30d', '90d', '365d', 'all'],
+    description: 'Time range filter for dashboard stats',
+  })
+  @ApiResponse({ status: 200, description: 'Dashboard stats returned' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getDashboardStats(
+    @CurrentUser() user: { userId: string },
+    @Query('range') range?: string,
+  ) {
+    this.logger.log(
+      `Dashboard stats request for user: ${user.userId}, range=${range ?? '30d'}`,
+    );
+    return this.userService.getDashboardStats(user.userId, range);
   }
 
   /**
@@ -117,7 +149,6 @@ export class UserController {
   @ApiResponse({ status: 403, description: 'Forbidden: Requires Admin role' })
   async createAdmin(@Body() registerUserDto: RegisterUserDto) {
     this.logger.log(`Admin creation request: ${registerUserDto.email}`);
-    // Force role to ADMIN
     registerUserDto.role = UserRole.ADMIN;
     return firstValueFrom(
       this.userClient.send(USER_PATTERNS.REGISTER, registerUserDto),

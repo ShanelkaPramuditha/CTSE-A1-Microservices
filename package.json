@@ -24,7 +24,7 @@
     "format": "prettier --write \"{apps,libs}/**/*.ts\"",
     "test": "jest",
     "test:cov": "jest --coverage",
-    "kill:all": "lsof -ti:3000,4001,4005 | xargs -r kill -9"
+    "kill:all": "lsof -tiTCP:3000,4001,4002,4003,4004,4005 -sTCP:LISTEN | xargs -r kill -9"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.17",

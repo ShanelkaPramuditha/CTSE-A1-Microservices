@@ -8,12 +8,14 @@ import {
   ConflictException,
   UnauthorizedException,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
-import { RpcException } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import { User, UserDocument } from './schemas/user.schema';
 import {
   RegisterUserDto,
@@ -22,6 +24,37 @@ import {
   ChangePasswordDto,
 } from '@app/common/dto';
 import { IJwtPayload, UserRole } from '@app/common/interfaces';
+import {
+  ORDER_PATTERNS,
+  ORDER_SERVICE,
+  PAYMENT_PATTERNS,
+  PAYMENT_SERVICE,
+  OrderStatus,
+  PaymentStatus,
+} from '@app/common/constants';
+
+type UserOrder = {
+  _id?: string;
+  userId?: string;
+  totalAmount?: number;
+  status?: string;
+  createdAt?: string | Date;
+  items?: unknown[];
+};
+
+type UserOrderItem = {
+  productId?: string;
+  productName?: string;
+  quantity?: number;
+  price?: number;
+};
+
+type UserPayment = {
+  _id?: string;
+  amount?: number;
+  status?: string;
+  createdAt?: string | Date;
+};
 
 @Injectable()
 export class UserService {
@@ -31,6 +64,8 @@ export class UserService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     private readonly jwtService: JwtService,
+    @Inject(ORDER_SERVICE) private readonly orderClient: ClientProxy,
+    @Inject(PAYMENT_SERVICE) private readonly paymentClient: ClientProxy,
   ) {}
 
   /**
@@ -220,5 +255,228 @@ export class UserService {
 
     this.logger.log(`Password changed for user: ${user.email}`);
     return { success: true, message: 'Password changed successfully' };
+  }
+
+  async getDashboardStats(userId: string) {
+    const profile = await this.getProfile(userId);
+
+    let orders: UserOrder[] = [];
+    let payments: UserPayment[] = [];
+
+    let orderServiceConnected = true;
+    let paymentServiceConnected = true;
+
+    try {
+      orders = await firstValueFrom(
+        this.orderClient.send<UserOrder[]>(ORDER_PATTERNS.GET_BY_USER, {
+          userId,
+        }),
+      );
+    } catch (error) {
+      orderServiceConnected = false;
+      this.logger.warn(
+        `Order service unavailable for dashboard stats (userId=${userId}): ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+    }
+
+    try {
+      payments = await firstValueFrom(
+        this.paymentClient.send<UserPayment[]>(PAYMENT_PATTERNS.GET_BY_USER, {
+          userId,
+        }),
+      );
+    } catch (error) {
+      paymentServiceConnected = false;
+      this.logger.warn(
+        `Payment service unavailable for dashboard stats (userId=${userId}): ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+    }
+
+    const safeOrders = Array.isArray(orders)
+      ? orders.filter((order) => !order.userId || order.userId === userId)
+      : [];
+    const safePayments = Array.isArray(payments) ? payments : [];
+
+    const now = Date.now();
+    const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const monthAgo = now - 30 * 24 * 60 * 60 * 1000;
+
+    const totalOrders = safeOrders.length;
+    const totalSpent = safeOrders.reduce(
+      (sum, order) => sum + Number(order.totalAmount ?? 0),
+      0,
+    );
+
+    const weeklyOrders = safeOrders.filter((order) => {
+      const created = new Date(order.createdAt ?? 0).getTime();
+      return created >= weekAgo;
+    });
+
+    const monthlyOrders = safeOrders.filter((order) => {
+      const created = new Date(order.createdAt ?? 0).getTime();
+      return created >= monthAgo;
+    });
+
+    const weeklyOrderAmount = weeklyOrders.reduce(
+      (sum, order) => sum + Number(order.totalAmount ?? 0),
+      0,
+    );
+
+    const monthlyOrderAmount = monthlyOrders.reduce(
+      (sum, order) => sum + Number(order.totalAmount ?? 0),
+      0,
+    );
+
+    const totalItemsOrdered = safeOrders.reduce(
+      (sum, order) =>
+        sum +
+        (Array.isArray(order.items)
+          ? order.items.reduce<number>((itemSum, item) => {
+              const quantity =
+                typeof item === 'object' && item !== null && 'quantity' in item
+                  ? Number((item as UserOrderItem).quantity ?? 0)
+                  : 0;
+              return itemSum + quantity;
+            }, 0)
+          : 0),
+      0,
+    );
+
+    const productMap = new Map<
+      string,
+      {
+        productId: string;
+        productName: string;
+        quantity: number;
+        totalAmount: number;
+      }
+    >();
+
+    safeOrders.forEach((order) => {
+      if (!Array.isArray(order.items)) {
+        return;
+      }
+
+      order.items.forEach((item) => {
+        if (typeof item !== 'object' || item === null) {
+          return;
+        }
+
+        const typedItem = item as UserOrderItem;
+        const productId = typedItem.productId ?? 'unknown-product';
+        const productName = typedItem.productName ?? 'Unknown Product';
+        const quantity = Number(typedItem.quantity ?? 0);
+        const price = Number(typedItem.price ?? 0);
+
+        const existing = productMap.get(productId);
+        if (existing) {
+          existing.quantity += quantity;
+          existing.totalAmount += quantity * price;
+          return;
+        }
+
+        productMap.set(productId, {
+          productId,
+          productName,
+          quantity,
+          totalAmount: quantity * price,
+        });
+      });
+    });
+
+    const topProducts = [...productMap.values()]
+      .sort((a, b) => b.quantity - a.quantity || b.totalAmount - a.totalAmount)
+      .slice(0, 5);
+
+    const paidOrders = safeOrders.filter(
+      (order) => order.status === OrderStatus.PAID,
+    ).length;
+    const pendingOrders = safeOrders.filter(
+      (order) => order.status === OrderStatus.PENDING,
+    ).length;
+    const failedOrders = safeOrders.filter(
+      (order) => order.status === OrderStatus.PAYMENT_FAILED,
+    ).length;
+
+    const confirmedOrders = safeOrders.filter(
+      (order) => order.status === OrderStatus.CONFIRMED,
+    ).length;
+    const deliveredOrders = safeOrders.filter(
+      (order) => order.status === OrderStatus.DELIVERED,
+    ).length;
+    const cancelledOrders = safeOrders.filter(
+      (order) => order.status === OrderStatus.CANCELLED,
+    ).length;
+
+    const averageOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0;
+
+    const weeklyAverageOrderValue =
+      weeklyOrders.length > 0 ? weeklyOrderAmount / weeklyOrders.length : 0;
+
+    const monthlyAverageOrderValue =
+      monthlyOrders.length > 0 ? monthlyOrderAmount / monthlyOrders.length : 0;
+
+    const sortedOrders = [...safeOrders].sort((a, b) => {
+      const left = new Date(a.createdAt ?? 0).getTime();
+      const right = new Date(b.createdAt ?? 0).getTime();
+      return right - left;
+    });
+
+    const lastOrderDate =
+      sortedOrders.length > 0 && sortedOrders[0].createdAt
+        ? new Date(sortedOrders[0].createdAt).toISOString()
+        : null;
+
+    const successfulPayments = safePayments.filter(
+      (payment) => payment.status === PaymentStatus.SUCCESS,
+    ).length;
+    const failedPayments = safePayments.filter(
+      (payment) => payment.status === PaymentStatus.FAILED,
+    ).length;
+
+    const successfulPaymentAmount = safePayments
+      .filter((payment) => payment.status === PaymentStatus.SUCCESS)
+      .reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0);
+
+    const failedPaymentAmount = safePayments
+      .filter((payment) => payment.status === PaymentStatus.FAILED)
+      .reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0);
+
+    const totalPaymentAttempts = successfulPayments + failedPayments;
+    const paymentSuccessRate =
+      totalPaymentAttempts > 0
+        ? (successfulPayments / totalPaymentAttempts) * 100
+        : 0;
+
+    return {
+      profile,
+      integration: {
+        orderServiceConnected,
+        paymentServiceConnected,
+      },
+      metrics: {
+        totalOrders,
+        totalSpent,
+        paidOrders,
+        pendingOrders,
+        failedOrders,
+        confirmedOrders,
+        deliveredOrders,
+        cancelledOrders,
+        totalItemsOrdered,
+        averageOrderValue,
+        weeklyAverageOrderValue,
+        monthlyAverageOrderValue,
+        weeklyOrderCount: weeklyOrders.length,
+        monthlyOrderCount: monthlyOrders.length,
+        lastOrderDate,
+        successfulPayments,
+        failedPayments,
+        successfulPaymentAmount,
+        failedPaymentAmount,
+        paymentSuccessRate,
+      },
+      topProducts,
+    };
   }
 }

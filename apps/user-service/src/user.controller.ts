@@ -71,4 +71,10 @@ export class UserController {
     this.logger.log(`Changing password for user: ${data.userId}`);
     return this.userService.changePassword(data.userId, data.changePasswordDto);
   }
+
+  @MessagePattern(USER_PATTERNS.GET_DASHBOARD_STATS)
+  async getDashboardStats(@Payload() data: { userId: string }) {
+    this.logger.log(`Fetching dashboard stats for user: ${data.userId}`);
+    return this.userService.getDashboardStats(data.userId);
+  }
 }
