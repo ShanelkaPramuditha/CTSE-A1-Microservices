@@ -1,156 +1,104 @@
+name: ecommerce-services
+
 services:
-  # --- MongoDB ---
   mongo:
     image: mongo:7
     container_name: ecommerce-mongo
+    restart: unless-stopped
     ports:
-      - '27017:27017'
+      - ${MONGO_PORT:-27017}:27017
     volumes:
       - mongo-data:/data/db
     networks:
       - ecommerce-network
-    restart: unless-stopped
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh --quiet
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # --- User Service ---
   user-service:
-    build:
-      context: .
-      dockerfile: apps/user-service/Dockerfile
+    image: ${IMAGE_REGISTRY}/user-service:${IMAGE_TAG}
     container_name: ecommerce-user-service
-    environment:
-      - USER_SERVICE_HOST=0.0.0.0
-      - USER_SERVICE_PORT=4001
-      - MONGO_URI_USER=mongodb://mongo:27017/user-db
-      - JWT_SECRET=${JWT_SECRET:-supersecret}
-      - JWT_EXPIRATION=${JWT_EXPIRATION:-3600s}
-      # Required by AppConfigModule env validation (not used by this service)
-      - PORT_API_GATEWAY=3000
-      - PRODUCT_SERVICE_HOST=product-service
-      - PRODUCT_SERVICE_PORT=4002
-      - ORDER_SERVICE_HOST=order-service
-      - ORDER_SERVICE_PORT=4005
-      - PAYMENT_SERVICE_HOST=payment-service
-      - PAYMENT_SERVICE_PORT=4004
-      - CART_SERVICE_HOST=order-service
-      - CART_SERVICE_PORT=4005
-      - MONGO_URI_PRODUCT=mongodb://mongo:27017/product-db
-      - MONGO_URI_ORDER=mongodb://mongo:27017/order-db
-      - MONGO_URI_PAYMENT=mongodb://mongo:27017/payment-db
-      - MONGO_URI_CART=mongodb://mongo:27017/cart-db
-    ports:
-      - '4001:4001'
-    networks:
-      - ecommerce-network
-    depends_on:
-      - mongo
+    pull_policy: always
     restart: unless-stopped
-
-  # --- Product Service ---
-  product-service:
-    build:
-      context: .
-      dockerfile: apps/product-service/Dockerfile
-    container_name: ecommerce-product-service
-    environment:
-      - PRODUCT_SERVICE_HOST=0.0.0.0
-      - PRODUCT_SERVICE_PORT=4002
-      - MONGO_URI_PRODUCT=mongodb://mongo:27017/product-db
+    env_file:
+      - .env
     ports:
-      - '4002:4002'
+      - ${USER_SERVICE_PORT:-4001}:4001
     depends_on:
       mongo:
         condition: service_healthy
     networks:
       - ecommerce-network
+
+  product-service:
+    image: ${IMAGE_REGISTRY}/product-service:${IMAGE_TAG}
+    container_name: ecommerce-product-service
+    pull_policy: always
     restart: unless-stopped
-  # --- Payment Service ---
-  payment-service:
-    build:
-      context: .
-      dockerfile: apps/payment-service/Dockerfile
-    container_name: ecommerce-payment-service
-    environment:
-      - PAYMENT_SERVICE_HOST=0.0.0.0
-      - PAYMENT_SERVICE_PORT=4004
-      - MONGO_URI_PAYMENT=mongodb://mongo:27017/payment-db
+    env_file:
+      - .env
     ports:
-      - '4004:4004'
+      - ${PRODUCT_SERVICE_PORT:-4002}:4002
+    depends_on:
+      mongo:
+        condition: service_healthy
     networks:
       - ecommerce-network
-    depends_on:
-      - mongo
-    restart: unless-stopped
 
-  # --- Order Service ---
   order-service:
-    build:
-      context: .
-      dockerfile: apps/order-service/Dockerfile
+    image: ${IMAGE_REGISTRY}/order-service:${IMAGE_TAG}
     container_name: ecommerce-order-service
-    environment:
-      - CART_SERVICE_HOST=0.0.0.0
-      - CART_SERVICE_PORT=4005
-      - MONGO_URI_CART=mongodb://mongo:27017/cart-db
-      - MONGO_URI_ORDER=mongodb://mongo:27017/order-db
-      - PRODUCT_SERVICE_HOST=product-service
-      - PRODUCT_SERVICE_PORT=4002
-      - PAYMENT_SERVICE_HOST=payment-service
-      - PAYMENT_SERVICE_PORT=4004
-      # Required by AppConfigModule env validation (not used by this service)
-      - PORT_API_GATEWAY=3000
-      - USER_SERVICE_HOST=user-service
-      - USER_SERVICE_PORT=4001
-      - ORDER_SERVICE_HOST=order-service
-      - ORDER_SERVICE_PORT=4005
-      - MONGO_URI_USER=mongodb://mongo:27017/user-db
-      - MONGO_URI_PRODUCT=mongodb://mongo:27017/product-db
-      - MONGO_URI_PAYMENT=mongodb://mongo:27017/payment-db
-      - JWT_SECRET=${JWT_SECRET:-supersecret}
-      - JWT_EXPIRATION=${JWT_EXPIRATION:-3600s}
+    pull_policy: always
+    restart: unless-stopped
+    env_file:
+      - .env
     ports:
-      - '4005:4005'
+      - ${CART_SERVICE_PORT:-4005}:4005
+    depends_on:
+      mongo:
+        condition: service_healthy
     networks:
       - ecommerce-network
-    depends_on:
-      - mongo
-    restart: unless-stopped
 
-  # --- API Gateway ---
-  api-gateway:
-    build:
-      context: .
-      dockerfile: apps/api-gateway/Dockerfile
-    container_name: ecommerce-api-gateway
-    environment:
-      - PORT_API_GATEWAY=3000
-      - USER_SERVICE_HOST=user-service
-      - USER_SERVICE_PORT=4001
-      - PRODUCT_SERVICE_HOST=product-service
-      - PRODUCT_SERVICE_PORT=4002
-      - ORDER_SERVICE_HOST=order-service
-      - ORDER_SERVICE_PORT=4005
-      - PAYMENT_SERVICE_HOST=payment-service
-      - PAYMENT_SERVICE_PORT=4004
-      - CART_SERVICE_HOST=order-service
-      - CART_SERVICE_PORT=4005
-      - JWT_SECRET=${JWT_SECRET:-supersecret}
-      - JWT_EXPIRATION=${JWT_EXPIRATION:-3600s}
+  payment-service:
+    image: ${IMAGE_REGISTRY}/payment-service:${IMAGE_TAG}
+    container_name: ecommerce-payment-service
+    pull_policy: always
+    restart: unless-stopped
+    env_file:
+      - .env
     ports:
-      - '3000:3000'
+      - ${PAYMENT_SERVICE_PORT:-4004}:4004
     depends_on:
-      - mongo
-      - user-service
-      - product-service
-      - order-service
-      - payment-service
+      mongo:
+        condition: service_healthy
     networks:
       - ecommerce-network
+
+  api-gateway:
+    image: ${IMAGE_REGISTRY}/api-gateway:${IMAGE_TAG}
+    container_name: ecommerce-api-gateway
+    pull_policy: always
     restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - ${PORT_API_GATEWAY:-3000}:3000
+    depends_on:
+      mongo:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+    networks:
+      - ecommerce-network
 
 volumes:
   mongo-data:
