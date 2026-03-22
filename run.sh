@@ -6,7 +6,7 @@ SERVICE_PORTS=(3000 4001 4002 4003 4004 4005)
 LOCAL_HOST="127.0.0.1"
 
 kill_service_ports() {
-    echo "Ensuring service ports are freed..."
+    echo "Ensuring service ports are freed"
     local pids
     pids=$(lsof -tiTCP:3000,4001,4002,4003,4004,4005 -sTCP:LISTEN)
 
