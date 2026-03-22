@@ -17,6 +17,7 @@ import {
 import { AuthController } from './controllers/auth.controller';
 import { UserController } from './controllers/user.controller';
 import { CartController } from './controllers/cart.controller';
+import { ProductController } from './controllers/product.controller';
 import { JwtStrategy } from './guards/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
@@ -37,7 +38,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
       }),
     }),
   ],
-  controllers: [AuthController, UserController, CartController],
+  controllers: [AuthController, UserController, ProductController, CartController],
   providers: [
     JwtStrategy,
     JwtAuthGuard,
