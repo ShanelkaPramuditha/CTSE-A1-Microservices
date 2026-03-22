@@ -19,6 +19,7 @@ services:
 
   user-service:
     image: ${IMAGE_REGISTRY}/user-service:${IMAGE_TAG}
+    container_name: ecommerce-user-service
     pull_policy: always
     restart: unless-stopped
     env_file:
@@ -33,6 +34,7 @@ services:
 
   product-service:
     image: ${IMAGE_REGISTRY}/product-service:${IMAGE_TAG}
+    container_name: ecommerce-product-service
     pull_policy: always
     restart: unless-stopped
     env_file:
@@ -47,6 +49,7 @@ services:
 
   order-service:
     image: ${IMAGE_REGISTRY}/order-service:${IMAGE_TAG}
+    container_name: ecommerce-order-service
     pull_policy: always
     restart: unless-stopped
     env_file:
@@ -61,6 +64,7 @@ services:
 
   cart-service:
     image: ${IMAGE_REGISTRY}/cart-service:${IMAGE_TAG}
+    container_name: ecommerce-cart-service
     pull_policy: always
     restart: unless-stopped
     env_file:
@@ -75,6 +79,7 @@ services:
 
   api-gateway:
     image: ${IMAGE_REGISTRY}/api-gateway:${IMAGE_TAG}
+    container_name: ecommerce-api-gateway
     pull_policy: always
     restart: unless-stopped
     env_file:
