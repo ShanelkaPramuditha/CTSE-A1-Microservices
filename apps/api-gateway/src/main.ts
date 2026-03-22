@@ -16,8 +16,6 @@ async function bootstrap() {
   const config = app.get(AppConfigService);
   const port = config.apiGateway.port;
 
-  console.log(`Starting API Gateway on port ${port}...`);
-
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
