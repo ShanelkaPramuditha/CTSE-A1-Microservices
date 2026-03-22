@@ -325,6 +325,64 @@ export class OrderService {
     return this.orderModel.find({ userId }).sort({ createdAt: -1 }).exec();
   }
 
+  /**
+   * Per-product stats for catalog availability: how many orders include the product
+   * and total units ordered across those lines (batch).
+   * Counts every order except cancelled / payment failed.
+   */
+  async getProductsOrderStats(productIds: string[]) {
+    if (productIds.length === 0) {
+      return [] as {
+        productId: string;
+        orderCount: number;
+        orderedQuantity: number;
+      }[];
+    }
+
+    const excludedStatuses = [
+      OrderStatus.CANCELLED,
+      OrderStatus.PAYMENT_FAILED,
+    ];
+
+    const rows = await this.orderModel
+      .aggregate<{
+        productId: string;
+        orderCount: number;
+        orderedQuantity: number;
+      }>([
+        {
+          $match: {
+            status: { $nin: excludedStatuses },
+            'items.productId': { $in: productIds },
+          },
+        },
+        { $unwind: '$items' },
+        {
+          $match: {
+            'items.productId': { $in: productIds },
+          },
+        },
+        {
+          $group: {
+            _id: '$items.productId',
+            orderedQuantity: { $sum: '$items.quantity' },
+            orderIds: { $addToSet: '$_id' },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            productId: '$_id',
+            orderedQuantity: 1,
+            orderCount: { $size: '$orderIds' },
+          },
+        },
+      ])
+      .exec();
+
+    return rows;
+  }
+
   async updateOrderStatus(orderId: string, status: string, paymentId?: string) {
     const updateData: Record<string, string> = { status };
     if (paymentId) updateData.paymentId = paymentId;

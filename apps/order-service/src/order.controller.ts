@@ -90,4 +90,15 @@ export class OrderController {
     this.logger.log(`[update_order_status] orderId=${data.orderId} → ${data.status}`);
     return this.orderService.updateOrderStatus(data.orderId, data.status, data.paymentId);
   }
+
+  /**
+   * Batch order stats per product (for product catalog availability)
+   * TCP Pattern: get_products_order_stats
+   */
+  @MessagePattern(ORDER_PATTERNS.GET_PRODUCTS_ORDER_STATS)
+  getProductsOrderStats(@Payload() data: { productIds: string[] }) {
+    const ids = data?.productIds ?? [];
+    this.logger.log(`[get_products_order_stats] count=${ids.length}`);
+    return this.orderService.getProductsOrderStats(ids);
+  }
 }
