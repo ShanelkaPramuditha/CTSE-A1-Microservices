@@ -28,6 +28,20 @@ services:
       - MONGO_URI_USER=mongodb://mongo:27017/user-db
       - JWT_SECRET=${JWT_SECRET:-supersecret}
       - JWT_EXPIRATION=${JWT_EXPIRATION:-3600s}
+      # Required by AppConfigModule env validation (not used by this service)
+      - PORT_API_GATEWAY=3000
+      - PRODUCT_SERVICE_HOST=product-service
+      - PRODUCT_SERVICE_PORT=4002
+      - ORDER_SERVICE_HOST=order-service
+      - ORDER_SERVICE_PORT=4005
+      - PAYMENT_SERVICE_HOST=payment-service
+      - PAYMENT_SERVICE_PORT=4004
+      - CART_SERVICE_HOST=order-service
+      - CART_SERVICE_PORT=4005
+      - MONGO_URI_PRODUCT=mongodb://mongo:27017/product-db
+      - MONGO_URI_ORDER=mongodb://mongo:27017/order-db
+      - MONGO_URI_PAYMENT=mongodb://mongo:27017/payment-db
+      - MONGO_URI_CART=mongodb://mongo:27017/cart-db
     ports:
       - '4001:4001'
     networks:
@@ -87,6 +101,17 @@ services:
       - PRODUCT_SERVICE_PORT=4002
       - PAYMENT_SERVICE_HOST=payment-service
       - PAYMENT_SERVICE_PORT=4004
+      # Required by AppConfigModule env validation (not used by this service)
+      - PORT_API_GATEWAY=3000
+      - USER_SERVICE_HOST=user-service
+      - USER_SERVICE_PORT=4001
+      - ORDER_SERVICE_HOST=order-service
+      - ORDER_SERVICE_PORT=4005
+      - MONGO_URI_USER=mongodb://mongo:27017/user-db
+      - MONGO_URI_PRODUCT=mongodb://mongo:27017/product-db
+      - MONGO_URI_PAYMENT=mongodb://mongo:27017/payment-db
+      - JWT_SECRET=${JWT_SECRET:-supersecret}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-3600s}
     ports:
       - '4005:4005'
     networks:

@@ -219,6 +219,7 @@ export class OrderService {
       const paymentResult = await firstValueFrom(
         this.paymentClient.send(PAYMENT_PATTERNS.PROCESS, {
           orderId: savedOrder._id.toString(),
+          userId,
           amount: totalAmount,
         }),
       );
@@ -301,6 +302,7 @@ export class OrderService {
       const paymentResult = await firstValueFrom(
         this.paymentClient.send(PAYMENT_PATTERNS.PROCESS, {
           orderId: savedOrder._id.toString(),
+          userId,
           amount: totalAmount,
         }),
       );
@@ -332,7 +334,7 @@ export class OrderService {
       .exec();
 
     if (!order) {
-      throw new RpcException(new BadRequestException('Order not found'));
+      throw new RpcException(new NotFoundException('Order not found'));
     }
 
     this.logger.log(`Order ${orderId} status → ${status}`);

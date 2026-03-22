@@ -3,6 +3,7 @@
 // ============================================
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
+import { OrderStatus } from '@app/common/constants';
 
 // --- Cart ---
 
@@ -50,8 +51,6 @@ export const CartSchema = SchemaFactory.createForClass(Cart);
 // --- Order ---
 
 export type OrderDocument = HydratedDocument<Order>;
-
-import { OrderStatus } from '@app/common/constants';
 
 @Schema({ _id: false })
 export class OrderItem {
