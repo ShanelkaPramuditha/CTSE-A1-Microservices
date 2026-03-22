@@ -9,6 +9,7 @@ import {
   LoginUserDto,
   UpdateUserDto,
   ChangePasswordDto,
+  RefreshSessionDto,
 } from '@app/common/dto';
 import { UserService } from './user.service';
 
@@ -36,6 +37,24 @@ export class UserController {
   async login(@Payload() loginUserDto: LoginUserDto) {
     this.logger.log(`Login attempt: ${loginUserDto.email}`);
     return this.userService.login(loginUserDto);
+  }
+
+  /**
+   * Refresh user session
+   */
+  @MessagePattern(USER_PATTERNS.REFRESH_SESSION)
+  async refreshSession(@Payload() refreshSessionDto: RefreshSessionDto) {
+    this.logger.log('Refreshing user session');
+    return this.userService.refreshSession(refreshSessionDto.refreshToken);
+  }
+
+  /**
+   * Logout user session
+   */
+  @MessagePattern(USER_PATTERNS.LOGOUT_SESSION)
+  async logout(@Payload() refreshSessionDto: RefreshSessionDto) {
+    this.logger.log('Logging out user session');
+    return this.userService.logout(refreshSessionDto.refreshToken);
   }
 
   /**

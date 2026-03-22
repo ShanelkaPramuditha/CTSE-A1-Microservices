@@ -41,6 +41,13 @@ export class RegisterUserDto {
   role?: string;
 }
 
+export class RefreshSessionDto {
+  @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' })
+  @IsString()
+  @IsNotEmpty()
+  refreshToken: string;
+}
+
 export class UpdateUserDto {
   @ApiProperty({ example: 'John Smith', required: false })
   @IsString()
@@ -86,6 +93,25 @@ export class LoginUserDto {
   password: string;
 }
 
+export class ListProductsQueryDto {
+  @ApiProperty({ required: false, example: 12, default: 12 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  limit?: number;
+
+  @ApiProperty({ required: false, example: 0, default: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  offset?: number;
+
+  @ApiProperty({ required: false, example: 'Audio' })
+  @IsOptional()
+  @IsString()
+  category?: string;
+}
+
 // --- Product DTOs ---
 
 export class CreateProductDto {
@@ -114,7 +140,6 @@ export class CreateProductDto {
   @IsNotEmpty()
   category: string;
 
-  
   @ApiPropertyOptional({
     example: 'https://cdn.example.com/products/headphones.jpg',
     description: 'Public URL for the product image',

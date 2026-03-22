@@ -24,6 +24,12 @@ export class User {
   @Prop()
   avatar?: string;
 
+  @Prop()
+  refreshTokenHash?: string;
+
+  @Prop()
+  refreshTokenExpiresAt?: Date;
+
   createdAt?: Date;
   updatedAt?: Date;
 }

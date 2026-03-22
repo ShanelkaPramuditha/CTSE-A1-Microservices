@@ -13,6 +13,8 @@ export const CART_SERVICE = 'CART_SERVICE';
 export const USER_PATTERNS = {
   REGISTER: 'register_user',
   LOGIN: 'login_user',
+  REFRESH_SESSION: 'refresh_user_session',
+  LOGOUT_SESSION: 'logout_user_session',
   GET_PROFILE: 'get_user_profile',
   UPDATE_PROFILE: 'update_user_profile',
   CHANGE_PASSWORD: 'change_password',
