@@ -19,7 +19,7 @@ import { Cart, CartSchema, Order, OrderSchema } from './schemas/schemas';
       connectionName: 'cart',
       inject: [AppConfigService],
       useFactory: (config: AppConfigService) => ({
-        uri: config.cart.mongoUri,
+        uri: config.order.mongoUri,
       }),
     }),
 
@@ -33,8 +33,14 @@ import { Cart, CartSchema, Order, OrderSchema } from './schemas/schemas';
     }),
 
     // Register schemas on their respective connections
-    MongooseModule.forFeature([{ name: Cart.name, schema: CartSchema }], 'cart'),
-    MongooseModule.forFeature([{ name: Order.name, schema: OrderSchema }], 'order'),
+    MongooseModule.forFeature(
+      [{ name: Cart.name, schema: CartSchema }],
+      'cart',
+    ),
+    MongooseModule.forFeature(
+      [{ name: Order.name, schema: OrderSchema }],
+      'order',
+    ),
   ],
   controllers: [OrderController],
   providers: [

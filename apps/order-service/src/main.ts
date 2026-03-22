@@ -32,7 +32,7 @@ async function bootstrap() {
   );
 
   await app.listen();
-  logger.log(`🛒 Order Service listening on ${host}:${port} (TCP)`);
+  logger.log(`🛒 Order Service listening on ${host}:${port}`);
   logger.log(`   Handles: cart (add/update/remove/clear) + checkout + orders`);
 }
 

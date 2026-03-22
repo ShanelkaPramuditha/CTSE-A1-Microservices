@@ -1,7 +1,7 @@
 # ============================================
 # Payment Service - Dockerfile
 # ============================================
-FROM node:20-alpine AS builder
+FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -19,7 +19,7 @@ COPY apps/payment-service/ ./apps/payment-service/
 RUN npx nest build payment-service
 
 # --- Production stage ---
-FROM node:20-alpine
+FROM --platform=$TARGETPLATFORM node:20-alpine
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -29,8 +29,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 
 COPY --from=builder /app/dist ./dist
-COPY .env ./
 
 EXPOSE 4004
 
-CMD ["node", "dist/apps/payment-service/main.js"]
+CMD ["node", "dist/apps/payment-service/apps/payment-service/src/main.js"]

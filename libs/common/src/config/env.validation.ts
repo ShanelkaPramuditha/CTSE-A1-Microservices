@@ -51,10 +51,6 @@ export class EnvironmentVariables {
 
   @IsString()
   @IsNotEmpty()
-  MONGO_URI_CART: string;
-
-  @IsString()
-  @IsNotEmpty()
   JWT_SECRET: string;
 
   @IsString()

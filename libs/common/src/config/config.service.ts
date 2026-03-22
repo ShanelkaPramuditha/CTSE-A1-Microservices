@@ -46,12 +46,6 @@ export class AppConfigService {
     };
   }
 
-  get cart() {
-    return {
-      mongoUri: this.configService.get('MONGO_URI_CART', { infer: true }),
-    };
-  }
-
   get jwt() {
     return {
       secret: this.configService.get('JWT_SECRET', { infer: true }),
