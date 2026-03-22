@@ -30,7 +30,7 @@ async function bootstrap() {
   );
 
   await app.listen();
-  logger.log(`🚀 Product Service is listening on ${host}:${port} (TCP)`);
+  logger.log(`🚀 Product Service is listening on ${host}:${port}`);
 }
 
 bootstrap();

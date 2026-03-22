@@ -30,7 +30,7 @@ async function bootstrap() {
   );
 
   await app.listen();
-  logger.log(`🚀 Payment Service is listening on ${host}:${port} (TCP)`);
+  logger.log(`🚀 Payment Service is listening on ${host}:${port}`);
 }
 
 bootstrap();
