@@ -16,6 +16,7 @@ export const USER_PATTERNS = {
   GET_PROFILE: 'get_user_profile',
   UPDATE_PROFILE: 'update_user_profile',
   CHANGE_PASSWORD: 'change_password',
+  GET_DASHBOARD_STATS: 'get_user_dashboard_stats',
 } as const;
 
 // --- Product Service TCP Patterns ---
@@ -30,6 +31,7 @@ export const PRODUCT_PATTERNS = {
 export const ORDER_PATTERNS = {
   CREATE: 'create_order',
   GET_ALL: 'get_orders',
+  GET_BY_USER: 'get_orders_by_user',
   UPDATE_STATUS: 'update_order_status',
   /** Checkout: reads the user's cart, validates stock, places order, clears cart, processes payment */
   CHECKOUT: 'checkout_order',
@@ -43,6 +45,7 @@ export const ORDER_PATTERNS = {
 // --- Payment Service TCP Patterns ---
 export const PAYMENT_PATTERNS = {
   PROCESS: 'process_payment',
+  GET_BY_USER: 'get_payments_by_user',
 } as const;
 
 // --- Cart Service TCP Patterns ---

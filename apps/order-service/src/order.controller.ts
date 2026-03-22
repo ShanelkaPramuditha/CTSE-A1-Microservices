@@ -28,7 +28,9 @@ export class OrderController {
 
   @MessagePattern(CART_PATTERNS.ADD_ITEM)
   addItem(@Payload() data: { userId: string; addCartItemDto: AddCartItemDto }) {
-    this.logger.log(`[add_cart_item] userId=${data.userId} product=${data.addCartItemDto.productId}`);
+    this.logger.log(
+      `[add_cart_item] userId=${data.userId} product=${data.addCartItemDto.productId}`,
+    );
     return this.orderService.addItem(data.userId, data.addCartItemDto);
   }
 
@@ -36,7 +38,9 @@ export class OrderController {
   updateItem(
     @Payload() data: { userId: string; updateCartItemDto: UpdateCartItemDto },
   ) {
-    this.logger.log(`[update_cart_item] userId=${data.userId} product=${data.updateCartItemDto.productId}`);
+    this.logger.log(
+      `[update_cart_item] userId=${data.userId} product=${data.updateCartItemDto.productId}`,
+    );
     return this.orderService.updateItem(data.userId, data.updateCartItemDto);
   }
 
@@ -44,7 +48,9 @@ export class OrderController {
   removeItem(
     @Payload() data: { userId: string; removeCartItemDto: RemoveCartItemDto },
   ) {
-    this.logger.log(`[remove_cart_item] userId=${data.userId} product=${data.removeCartItemDto.productId}`);
+    this.logger.log(
+      `[remove_cart_item] userId=${data.userId} product=${data.removeCartItemDto.productId}`,
+    );
     return this.orderService.removeItem(data.userId, data.removeCartItemDto);
   }
 
@@ -83,12 +89,24 @@ export class OrderController {
     return this.orderService.getUserOrders(data.userId);
   }
 
+  @MessagePattern(ORDER_PATTERNS.GET_BY_USER)
+  getOrdersByUser(@Payload() data: { userId: string }) {
+    this.logger.log(`[get_orders_by_user] userId=${data.userId}`);
+    return this.orderService.getUserOrders(data.userId);
+  }
+
   @MessagePattern(ORDER_PATTERNS.UPDATE_STATUS)
   updateOrderStatus(
     @Payload() data: { orderId: string; status: string; paymentId?: string },
   ) {
-    this.logger.log(`[update_order_status] orderId=${data.orderId} → ${data.status}`);
-    return this.orderService.updateOrderStatus(data.orderId, data.status, data.paymentId);
+    this.logger.log(
+      `[update_order_status] orderId=${data.orderId} → ${data.status}`,
+    );
+    return this.orderService.updateOrderStatus(
+      data.orderId,
+      data.status,
+      data.paymentId,
+    );
   }
 
   /**

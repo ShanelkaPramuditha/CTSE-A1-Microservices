@@ -57,6 +57,10 @@ export class PaymentService {
     return savedPayment;
   }
 
+  async getPaymentsByUser(userId: string) {
+    return this.paymentModel.find({ userId }).sort({ createdAt: -1 }).exec();
+  }
+
   /**
    * Simulate processing delay (500ms - 2000ms)
    */
