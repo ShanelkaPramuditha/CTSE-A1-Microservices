@@ -23,7 +23,7 @@ export class PaymentService {
    * - Stores payment record in MongoDB
    */
   async processPayment(processPaymentDto: ProcessPaymentDto) {
-    const { orderId, amount } = processPaymentDto;
+    const { orderId, amount, userId } = processPaymentDto;
 
     // Simulate payment gateway processing delay
     await this.simulateProcessingDelay();
@@ -36,6 +36,7 @@ export class PaymentService {
     // Create payment record
     const payment = new this.paymentModel({
       orderId,
+      userId,
       amount,
       status,
       transactionId,

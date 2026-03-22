@@ -96,7 +96,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
           },
         }),
     },
-    // TCP Client → Cart Service
+    // TCP Client → Cart Service (same as order-service — merged)
     {
       provide: CART_SERVICE,
       inject: [AppConfigService],
