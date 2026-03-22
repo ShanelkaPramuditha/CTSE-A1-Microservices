@@ -14,8 +14,8 @@ async function bootstrap() {
   const appContext = await NestFactory.createApplicationContext(OrderModule);
   const config = appContext.get(AppConfigService);
 
-  const host = config.cart.host;
-  const port = config.cart.port;
+  const host = config.order.host;
+  const port = config.order.port;
 
   await appContext.close();
 
