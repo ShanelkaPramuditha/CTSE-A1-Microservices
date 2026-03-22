@@ -4,20 +4,22 @@
 import { NestFactory } from '@nestjs/core';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { AppConfigService } from '@app/common';
 import { OrderModule } from './order.module';
 
 async function bootstrap() {
   const logger = new Logger('OrderService');
 
+  // Temporary context to read config, then close it
   const appContext = await NestFactory.createApplicationContext(OrderModule);
-  const configService = appContext.get(ConfigService);
+  const config = appContext.get(AppConfigService);
 
-  const host = configService.get<string>('ORDER_SERVICE_HOST', 'localhost');
-  const port = configService.get<number>('ORDER_SERVICE_PORT', 4003);
+  const host = config.cart.host;
+  const port = config.cart.port;
 
   await appContext.close();
 
+  // Create TCP microservice
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     OrderModule,
     {
@@ -30,7 +32,8 @@ async function bootstrap() {
   );
 
   await app.listen();
-  logger.log(`🚀 Order Service is listening on ${host}:${port} (TCP)`);
+  logger.log(`🛒 Order Service listening on ${host}:${port} (TCP)`);
+  logger.log(`   Handles: cart (add/update/remove/clear) + checkout + orders`);
 }
 
 bootstrap();

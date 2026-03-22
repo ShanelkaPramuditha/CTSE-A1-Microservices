@@ -30,6 +30,6 @@ RUN pnpm install --frozen-lockfile --prod
 
 COPY --from=builder /app/dist ./dist
 
-EXPOSE 4003
+EXPOSE 4005
 
 CMD ["node", "dist/apps/order-service/main.js"]
