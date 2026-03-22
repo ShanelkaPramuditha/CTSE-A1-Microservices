@@ -1,6 +1,21 @@
-version: '3.8'
-
 services:
+  # --- MongoDB ---
+  mongo:
+    image: mongo:7
+    container_name: ecommerce-mongo
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - ecommerce-network
+    restart: unless-stopped
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # --- User Service ---
   user-service:
     build:
@@ -15,6 +30,27 @@ services:
       - JWT_EXPIRATION=${JWT_EXPIRATION:-3600s}
     ports:
       - '4001:4001'
+    networks:
+      - ecommerce-network
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+  # --- Product Service ---
+  product-service:
+    build:
+      context: .
+      dockerfile: apps/product-service/Dockerfile
+    container_name: ecommerce-product-service
+    environment:
+      - PRODUCT_SERVICE_HOST=0.0.0.0
+      - PRODUCT_SERVICE_PORT=4002
+      - MONGO_URI_PRODUCT=mongodb://mongo:27017/product-db
+    ports:
+      - '4002:4002'
+    depends_on:
+      mongo:
+        condition: service_healthy
     networks:
       - ecommerce-network
     restart: unless-stopped
@@ -33,6 +69,8 @@ services:
       - '4005:4005'
     networks:
       - ecommerce-network
+    depends_on:
+      - mongo
     restart: unless-stopped
 
   # --- API Gateway ---
@@ -58,7 +96,9 @@ services:
     ports:
       - '3000:3000'
     depends_on:
+      - mongo
       - user-service
+      - product-service
       - cart-service
     networks:
       - ecommerce-network
