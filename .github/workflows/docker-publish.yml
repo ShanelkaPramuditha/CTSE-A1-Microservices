@@ -139,6 +139,35 @@ jobs:
           cache-from: type=gha,scope=ecom-${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=ecom-${{ matrix.service }}
 
+  deploy:
+    name: Deploy to Server
+    needs: [detect-changes, build-and-push]
+    if: needs.detect-changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set image tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd "${{ secrets.BACKEND_DEPLOY_PATH }}"
+            export IMAGE_TAG="${{ steps.tag.outputs.value }}"
+            docker compose pull
+            docker compose up -d --remove-orphans
+
   no-changes:
     name: No Service Changes
     needs: detect-changes
