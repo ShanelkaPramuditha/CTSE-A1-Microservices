@@ -70,7 +70,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
         }),
     },
     // TCP Client → Order Service
-    // NOTE: Cart and Order are merged into order-service (port 4005)
+    // NOTE: Cart and Order are both handled by order-service
     {
       provide: ORDER_SERVICE,
       inject: [AppConfigService],
@@ -78,8 +78,8 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
         ClientProxyFactory.create({
           transport: Transport.TCP,
           options: {
-            host: config.cart.host,
-            port: config.cart.port,
+            host: config.order.host,
+            port: config.order.port,
           },
         }),
     },
@@ -104,8 +104,8 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
         ClientProxyFactory.create({
           transport: Transport.TCP,
           options: {
-            host: config.cart.host,
-            port: config.cart.port,
+            host: config.order.host,
+            port: config.order.port,
           },
         }),
     },
