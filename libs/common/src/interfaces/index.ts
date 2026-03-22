@@ -29,6 +29,14 @@ export interface IProduct {
   updatedAt?: Date;
 }
 
+export interface IPaginatedResponse<T> {
+  data: T[];
+  total: number;
+  totalPages: number;
+  page: number;
+  hasMore: boolean;
+}
+
 export interface IOrderItem {
   productId: string;
   productName: string;

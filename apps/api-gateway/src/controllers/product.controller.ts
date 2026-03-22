@@ -7,6 +7,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   Inject,
   Logger,
   UseGuards,
@@ -18,11 +19,16 @@ import {
   ApiResponse,
   ApiCookieAuth,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
 import { PRODUCT_SERVICE, PRODUCT_PATTERNS } from '@app/common/constants';
-import { CreateProductDto, ValidateStockDto } from '@app/common/dto';
-import { UserRole } from '@app/common/interfaces';
+import {
+  CreateProductDto,
+  PaginationQueryDto,
+  ValidateStockDto,
+} from '@app/common/dto';
+import { UserRole, IPaginatedResponse, IProduct } from '@app/common/interfaces';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
@@ -39,9 +45,15 @@ export class ProductController {
   @Get()
   @ApiOperation({ summary: 'List all products' })
   @ApiResponse({ status: 200, description: 'Products returned' })
-  async findAll() {
-    this.logger.log('List products');
-    return firstValueFrom(this.productClient.send(PRODUCT_PATTERNS.GET_ALL, {}));
+  @ApiQuery({ name: 'skip', required: false, type: Number, example: 0 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  async findAll(@Query() pagination: PaginationQueryDto) {
+    const skip = pagination.skip ?? 0;
+    const limit = pagination.limit ?? 20;
+    this.logger.log(`List products skip=${skip} limit=${limit}`);
+    return firstValueFrom(
+      this.productClient.send(PRODUCT_PATTERNS.GET_ALL, pagination),
+    ) as Promise<IPaginatedResponse<IProduct>>;
   }
 
   @Get(':productId')

@@ -4,9 +4,11 @@
 import {
   IsEmail,
   IsNotEmpty,
+  IsInt,
   IsNumber,
   IsString,
   Min,
+  Max,
   MinLength,
   IsArray,
   ValidateNested,
@@ -123,6 +125,32 @@ export class CreateProductDto {
   @IsString()
   @IsUrl({ require_tld: false })
   imageUrl?: string;
+}
+
+export class PaginationQueryDto {
+  @ApiPropertyOptional({
+    example: 0,
+    default: 0,
+    description: 'Number of records to skip from the start of the catalog',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  skip?: number = 0;
+
+  @ApiPropertyOptional({
+    example: 20,
+    default: 20,
+    maximum: 100,
+    description: 'Number of records to return in one page (max 100)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 20;
 }
 
 // --- Order DTOs ---

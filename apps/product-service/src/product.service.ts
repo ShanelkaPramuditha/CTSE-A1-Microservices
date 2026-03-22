@@ -9,8 +9,12 @@ import { firstValueFrom, of } from 'rxjs';
 import { timeout, catchError } from 'rxjs/operators';
 import { ORDER_SERVICE, ORDER_PATTERNS } from '@app/common/constants';
 import { Product, ProductDocument } from './schemas/product.schema';
-import { CreateProductDto } from '@app/common/dto';
-import { IStockValidationResult } from '@app/common/interfaces';
+import { CreateProductDto, PaginationQueryDto } from '@app/common/dto';
+import {
+  IProduct,
+  IPaginatedResponse,
+  IStockValidationResult,
+} from '@app/common/interfaces';
 
 type ProductOrderStatRow = {
   productId: string;
@@ -39,11 +43,34 @@ export class ProductService {
   }
 
   /**
-   * Get all products, sorted by newest first
+   * Get products, sorted by newest first, using offset pagination
    */
-  async findAll() {
-    const products = await this.productModel.find().sort({ createdAt: -1 }).exec();
-    return this.attachOrderAvailability(products);
+  async findAll(
+    pagination: PaginationQueryDto = {},
+  ): Promise<IPaginatedResponse<IProduct>> {
+    const skip = Math.max(0, Number(pagination.skip ?? 0));
+    const limit = Math.min(100, Math.max(1, Number(pagination.limit ?? 20)));
+
+    const [total, products] = await Promise.all([
+      this.productModel.countDocuments().exec(),
+      this.productModel
+        .find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+    ]);
+
+    const data = await this.attachOrderAvailability(products);
+    const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
+
+    return {
+      data,
+      total,
+      totalPages,
+      page: total === 0 ? 0 : Math.floor(skip / limit),
+      hasMore: skip + limit < total,
+    };
   }
 
   /**
@@ -120,9 +147,10 @@ export class ProductService {
         orderedQuantity: 0,
       };
       const orderedQty = stat.orderedQuantity;
-      const base = p.toObject();
+      const { _id, ...base } = p.toObject();
       return {
         ...base,
+        _id: id,
         totalOrders: stat.orderCount,
         orderedQuantity: orderedQty,
         availableStock: Math.max(0, p.stock - orderedQty),
