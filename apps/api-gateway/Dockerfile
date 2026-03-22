@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -20,7 +20,7 @@ COPY apps/api-gateway/ ./apps/api-gateway/
 RUN npx nest build api-gateway
 
 # --- Production stage ---
-FROM node:20-alpine
+FROM --platform=$TARGETPLATFORM node:20-alpine
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -31,9 +31,6 @@ RUN pnpm install --frozen-lockfile --prod
 
 # Copy built output
 COPY --from=builder /app/dist ./dist
-
-# Copy .env (will be overridden by docker-compose env)
-COPY .env ./
 
 EXPOSE 3000
 
