@@ -33,7 +33,3 @@ export class Payment {
 }
 
 export const PaymentSchema = SchemaFactory.createForClass(Payment);
-
-// Index for order lookups
-PaymentSchema.index({ orderId: 1 });
-PaymentSchema.index({ userId: 1 });
