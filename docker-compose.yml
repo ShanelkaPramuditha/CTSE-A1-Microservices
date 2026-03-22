@@ -1,94 +1,91 @@
 name: ecommerce-services
 
-services:
-  mongo:
-    image: mongo:7
-    container_name: ecommerce-mongo
-    restart: unless-stopped
-    ports:
-      - ${MONGO_PORT:-27017}:27017
-    volumes:
-      - mongo-data:/data/db
-    networks:
-      - ecommerce-network
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 5
+x-service-env: &service-env
+  PORT_API_GATEWAY: ${PORT_API_GATEWAY:-3000}
+  USER_SERVICE_HOST: ${USER_SERVICE_HOST:-ecommerce-user-service}
+  USER_SERVICE_PORT: ${USER_SERVICE_PORT:-4001}
+  PRODUCT_SERVICE_HOST: ${PRODUCT_SERVICE_HOST:-ecommerce-product-service}
+  PRODUCT_SERVICE_PORT: ${PRODUCT_SERVICE_PORT:-4002}
+  ORDER_SERVICE_HOST: ${ORDER_SERVICE_HOST:-ecommerce-order-service}
+  ORDER_SERVICE_PORT: ${ORDER_SERVICE_PORT:-4003}
+  PAYMENT_SERVICE_HOST: ${PAYMENT_SERVICE_HOST:-ecommerce-payment-service}
+  PAYMENT_SERVICE_PORT: ${PAYMENT_SERVICE_PORT:-4004}
+  MONGO_URI_USER: ${MONGO_URI_USER}
+  MONGO_URI_PRODUCT: ${MONGO_URI_PRODUCT}
+  MONGO_URI_ORDER: ${MONGO_URI_ORDER}
+  MONGO_URI_PAYMENT: ${MONGO_URI_PAYMENT}
+  JWT_SECRET: ${JWT_SECRET}
+  JWT_EXPIRATION: ${JWT_EXPIRATION:-3600s}
 
+services:
   user-service:
-    image: ${IMAGE_REGISTRY}/user-service:${IMAGE_TAG}
+    image: ${IMAGE_REGISTRY:-ghcr.io/shanelkapramuditha}/user-service:${IMAGE_TAG:-latest}
     container_name: ecommerce-user-service
     pull_policy: always
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      <<: *service-env
     ports:
       - ${USER_SERVICE_PORT:-4001}:4001
-    depends_on:
-      mongo:
-        condition: service_healthy
+    volumes:
+      - user-service-data:/app/logs
     networks:
       - ecommerce-network
 
   product-service:
-    image: ${IMAGE_REGISTRY}/product-service:${IMAGE_TAG}
+    image: ${IMAGE_REGISTRY:-ghcr.io/shanelkapramuditha}/product-service:${IMAGE_TAG:-latest}
     container_name: ecommerce-product-service
     pull_policy: always
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      <<: *service-env
     ports:
       - ${PRODUCT_SERVICE_PORT:-4002}:4002
-    depends_on:
-      mongo:
-        condition: service_healthy
+    volumes:
+      - product-service-data:/app/logs
     networks:
       - ecommerce-network
 
   order-service:
-    image: ${IMAGE_REGISTRY}/order-service:${IMAGE_TAG}
+    image: ${IMAGE_REGISTRY:-ghcr.io/shanelkapramuditha}/order-service:${IMAGE_TAG:-latest}
     container_name: ecommerce-order-service
     pull_policy: always
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      <<: *service-env
     ports:
       - ${ORDER_SERVICE_PORT:-4003}:4003
-    depends_on:
-      mongo:
-        condition: service_healthy
+    volumes:
+      - order-service-data:/app/logs
     networks:
       - ecommerce-network
 
   payment-service:
-    image: ${IMAGE_REGISTRY}/payment-service:${IMAGE_TAG}
+    image: ${IMAGE_REGISTRY:-ghcr.io/shanelkapramuditha}/payment-service:${IMAGE_TAG:-latest}
     container_name: ecommerce-payment-service
     pull_policy: always
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      <<: *service-env
     ports:
       - ${PAYMENT_SERVICE_PORT:-4004}:4004
-    depends_on:
-      mongo:
-        condition: service_healthy
+    volumes:
+      - payment-service-data:/app/logs
     networks:
       - ecommerce-network
 
   api-gateway:
-    image: ${IMAGE_REGISTRY}/api-gateway:${IMAGE_TAG}
+    image: ${IMAGE_REGISTRY:-ghcr.io/shanelkapramuditha}/api-gateway:${IMAGE_TAG:-latest}
     container_name: ecommerce-api-gateway
     pull_policy: always
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      <<: *service-env
     ports:
       - ${PORT_API_GATEWAY:-3000}:3000
+    volumes:
+      - api-gateway-data:/app/logs
     depends_on:
-      mongo:
-        condition: service_healthy
       user-service:
         condition: service_started
       product-service:
@@ -101,8 +98,12 @@ services:
       - ecommerce-network
 
 volumes:
-  mongo-data:
-    driver: local
+  user-service-data:
+  product-service-data:
+  order-service-data:
+  payment-service-data:
+  api-gateway-data:
+
 
 networks:
   ecommerce-network:
