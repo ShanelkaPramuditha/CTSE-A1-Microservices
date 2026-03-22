@@ -55,6 +55,24 @@ services:
       - ecommerce-network
     restart: unless-stopped
 
+  # --- Payment Service ---
+  payment-service:
+    build:
+      context: .
+      dockerfile: apps/payment-service/Dockerfile
+    container_name: ecommerce-payment-service
+    environment:
+      - PAYMENT_SERVICE_HOST=0.0.0.0
+      - PAYMENT_SERVICE_PORT=4004
+      - MONGO_URI_PAYMENT=mongodb://mongo:27017/payment-db
+    ports:
+      - '4004:4004'
+    networks:
+      - ecommerce-network
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
   # --- Cart Service ---
   cart-service:
     build:
@@ -100,6 +118,7 @@ services:
       - user-service
       - product-service
       - cart-service
+      - payment-service
     networks:
       - ecommerce-network
     restart: unless-stopped
