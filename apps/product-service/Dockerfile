@@ -1,7 +1,7 @@
 # ============================================
 # Product Service - Dockerfile
 # ============================================
-FROM node:20-alpine AS builder
+FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -19,7 +19,7 @@ COPY apps/product-service/ ./apps/product-service/
 RUN npx nest build product-service
 
 # --- Production stage ---
-FROM node:20-alpine
+FROM --platform=$TARGETPLATFORM node:20-alpine
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
