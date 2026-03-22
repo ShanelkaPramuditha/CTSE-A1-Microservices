@@ -13,9 +13,10 @@ import {
   IsPositive,
   IsOptional,
   IsEnum,
+  IsUrl,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 // --- User DTOs ---
 export class RegisterUserDto {
@@ -112,6 +113,16 @@ export class CreateProductDto {
   @IsString()
   @IsNotEmpty()
   category: string;
+
+  
+  @ApiPropertyOptional({
+    example: 'https://cdn.example.com/products/headphones.jpg',
+    description: 'Public URL for the product image',
+  })
+  @IsOptional()
+  @IsString()
+  @IsUrl({ require_tld: false })
+  imageUrl?: string;
 }
 
 // --- Order DTOs ---

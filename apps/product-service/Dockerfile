@@ -32,4 +32,4 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 4002
 
-CMD ["node", "dist/apps/product-service/src/main.js"]
+CMD ["node", "dist/apps/product-service/apps/product-service/src/main.js"]
