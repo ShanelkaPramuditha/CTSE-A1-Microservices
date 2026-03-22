@@ -46,10 +46,10 @@ jobs:
               - 'apps/user-service/**'
             product_service:
               - 'apps/product-service/**'
-            cart_service:
-              - 'apps/cart-service/**'
             order_service:
               - 'apps/order-service/**'
+            payment_service:
+              - 'apps/payment-service/**'
 
       - name: Build dynamic matrix
         id: matrix
@@ -62,8 +62,8 @@ jobs:
               apiGateway: common || '${{ steps.filter.outputs.api_gateway }}' === 'true',
               userService: common || '${{ steps.filter.outputs.user_service }}' === 'true',
               productService: common || '${{ steps.filter.outputs.product_service }}' === 'true',
-              cartService: common || '${{ steps.filter.outputs.cart_service }}' === 'true',
               orderService: common || '${{ steps.filter.outputs.order_service }}' === 'true',
+              paymentService: common || '${{ steps.filter.outputs.payment_service }}' === 'true',
             };
 
             const include = [];
@@ -76,11 +76,11 @@ jobs:
             if (changed.productService) {
               include.push({ service: 'product-service', dockerfile: 'apps/product-service/Dockerfile', image: 'product-service' });
             }
-            if (changed.cartService) {
-              include.push({ service: 'cart-service', dockerfile: 'apps/cart-service/Dockerfile', image: 'cart-service' });
-            }
             if (changed.orderService) {
               include.push({ service: 'order-service', dockerfile: 'apps/order-service/Dockerfile', image: 'order-service' });
+            }
+            if (changed.paymentService) {
+              include.push({ service: 'payment-service', dockerfile: 'apps/payment-service/Dockerfile', image: 'payment-service' });
             }
 
             core.setOutput('matrix', JSON.stringify({ include }));
