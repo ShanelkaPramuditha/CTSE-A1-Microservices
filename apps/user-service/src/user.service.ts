@@ -479,4 +479,14 @@ export class UserService {
       topProducts,
     };
   }
+
+  async validateUser(userId: string) {
+    const exists = await this.userModel.exists({ _id: userId });
+
+    if (!exists) {
+      throw new RpcException('User not found');
+    }
+
+    return { valid: true };
+  }
 }
