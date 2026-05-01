@@ -75,7 +75,7 @@ export class PaymentService {
     );
 
     this.logger.log(
-      `✅ Payment SUCCESS for order ${orderId} | Transaction: ${transactionId} | Amount: $${amount}`,
+      `✅ Payment SUCCESS for order ${orderId} | Transaction: ${transactionId} | Amount: LKR ${amount}`,
     );
 
     return {
