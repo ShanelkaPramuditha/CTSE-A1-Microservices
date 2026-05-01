@@ -31,6 +31,7 @@ import { UserRole } from '@app/common/interfaces';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
+import { Public } from '../decorators/public.decorator';
 
 @ApiTags('Products')
 @Controller('products')
@@ -42,6 +43,7 @@ export class ProductController {
   ) {}
 
   @Get()
+  @Public()
   @ApiOperation({ summary: 'List all products' })
   @ApiResponse({ status: 200, description: 'Products returned' })
   async findAll(@Query() query: ListProductsQueryDto) {
@@ -56,6 +58,7 @@ export class ProductController {
   }
 
   @Get(':productId')
+  @Public()
   @ApiParam({ name: 'productId', description: 'Product MongoDB id' })
   @ApiOperation({ summary: 'Get product by id' })
   @ApiResponse({ status: 200, description: 'Product returned' })

@@ -2,13 +2,18 @@ name: Microservices Docker Publish
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev, chore/*]
   workflow_dispatch:
     inputs:
       image_tag:
         description: Docker image tag
         required: true
         default: latest
+      force_deploy:
+        description: Deploy even if no service changes detected
+        required: false
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
@@ -132,17 +137,84 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags:
             ${{ steps.image.outputs.prefix }}/${{ matrix.image }}:${{
             steps.tag.outputs.value }}
           cache-from: type=gha,scope=ecom-${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=ecom-${{ matrix.service }}
 
+  deploy:
+    name: Deploy to Server
+    needs: [detect-changes, build-and-push]
+    if:
+      always() && (needs.detect-changes.outputs.has_changes == 'true' ||
+      (github.event_name == 'workflow_dispatch' && inputs.force_deploy == true))
+      && (needs.build-and-push.result == 'success' ||
+      needs.build-and-push.result == 'skipped')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set image tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            mkdir -p "${{ secrets.BACKEND_DEPLOY_PATH }}"
+            export IMAGE_TAG="${{ steps.tag.outputs.value }}"
+            DEPLOY_PATH="${{ secrets.BACKEND_DEPLOY_PATH }}"
+            REPO_DIR="${{ secrets.BACKEND_REPO_DIR }}"
+            if [ -z "$REPO_DIR" ]; then
+              REPO_DIR="$HOME/backend-repo"
+            fi
+            COMPOSE_SOURCE="${{ secrets.BACKEND_COMPOSE_SOURCE }}"
+            if [ -z "$COMPOSE_SOURCE" ]; then
+              COMPOSE_SOURCE="docker-compose.yml"
+            fi
+
+            if [ ! -d "$REPO_DIR/.git" ]; then
+              if [ -n "${{ secrets.BACKEND_REPO_TOKEN }}" ]; then
+                git clone "https://x-access-token:${{ secrets.BACKEND_REPO_TOKEN }}@github.com/${{ github.repository }}.git" "$REPO_DIR"
+              else
+                git clone "https://github.com/${{ github.repository }}.git" "$REPO_DIR"
+              fi
+            else
+              git -C "$REPO_DIR" fetch --all --prune
+            fi
+
+            git -C "$REPO_DIR" checkout "${{ github.ref_name }}"
+            git -C "$REPO_DIR" reset --hard "origin/${{ github.ref_name }}"
+
+            if [ ! -f "$REPO_DIR/$COMPOSE_SOURCE" ]; then
+              echo "Compose source file not found: $REPO_DIR/$COMPOSE_SOURCE"
+              exit 1
+            fi
+
+            cp "$REPO_DIR/$COMPOSE_SOURCE" "$DEPLOY_PATH/docker-compose.yml"
+            cd "$DEPLOY_PATH"
+            printf '%s' "${{ secrets.PROD_ENV }}" > .env
+
+            docker compose --env-file .env -f docker-compose.yml pull
+            docker compose --env-file .env -f docker-compose.yml up -d --remove-orphans
+
   no-changes:
     name: No Service Changes
     needs: detect-changes
-    if: needs.detect-changes.outputs.has_changes != 'true'
+    if:
+      needs.detect-changes.outputs.has_changes != 'true' && !(github.event_name
+      == 'workflow_dispatch' && inputs.force_deploy == true)
     runs-on: ubuntu-latest
     steps:
       - name: Skip publish
