@@ -7,6 +7,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   Inject,
   Logger,
   UseGuards,
@@ -21,11 +22,16 @@ import {
 } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
 import { PRODUCT_SERVICE, PRODUCT_PATTERNS } from '@app/common/constants';
-import { CreateProductDto, ValidateStockDto } from '@app/common/dto';
+import {
+  CreateProductDto,
+  ListProductsQueryDto,
+  ValidateStockDto,
+} from '@app/common/dto';
 import { UserRole } from '@app/common/interfaces';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
+import { Public } from '../decorators/public.decorator';
 
 @ApiTags('Products')
 @Controller('products')
@@ -37,14 +43,22 @@ export class ProductController {
   ) {}
 
   @Get()
+  @Public()
   @ApiOperation({ summary: 'List all products' })
   @ApiResponse({ status: 200, description: 'Products returned' })
-  async findAll() {
+  async findAll(@Query() query: ListProductsQueryDto) {
     this.logger.log('List products');
-    return firstValueFrom(this.productClient.send(PRODUCT_PATTERNS.GET_ALL, {}));
+    return firstValueFrom(
+      this.productClient.send(PRODUCT_PATTERNS.GET_ALL, {
+        limit: query?.limit,
+        offset: query?.offset,
+        category: query?.category,
+      }),
+    );
   }
 
   @Get(':productId')
+  @Public()
   @ApiParam({ name: 'productId', description: 'Product MongoDB id' })
   @ApiOperation({ summary: 'Get product by id' })
   @ApiResponse({ status: 200, description: 'Product returned' })
