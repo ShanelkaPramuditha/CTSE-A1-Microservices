@@ -2,11 +2,17 @@
 // Shared Interfaces
 // ============================================
 
+export enum UserRole {
+  USER = 'user',
+  ADMIN = 'admin',
+}
+
 export interface IUser {
   _id?: string;
   email: string;
   name: string;
   password?: string;
+  role?: UserRole;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -18,6 +24,7 @@ export interface IProduct {
   price: number;
   stock: number;
   category: string;
+  imageUrl?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -53,6 +60,7 @@ export interface IPayment {
 export interface IJwtPayload {
   sub: string;
   email: string;
+  role: UserRole;
 }
 
 export interface IStockValidation {
@@ -67,4 +75,21 @@ export interface IStockValidationResult {
   availableStock?: number;
   requestedQuantity: number;
   price?: number;
+}
+
+export interface ICartItem {
+  productId: string;
+  productName: string;
+  price: number;
+  quantity: number;
+  image?: string;
+}
+
+export interface ICart {
+  _id?: string;
+  userId: string;
+  items: ICartItem[];
+  totalAmount: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 }

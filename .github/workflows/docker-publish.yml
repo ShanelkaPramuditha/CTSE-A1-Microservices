@@ -1,0 +1,221 @@
+name: Microservices Docker Publish
+
+on:
+  push:
+    branches: [main, dev, chore/*]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Docker image tag
+        required: true
+        default: latest
+      force_deploy:
+        description: Deploy even if no service changes detected
+        required: false
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  detect-changes:
+    name: Detect Changed Services
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      has_changes: ${{ steps.matrix.outputs.has_changes }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          base: ${{ github.event.repository.default_branch }}
+          ref: ${{ github.ref }}
+          filters: |
+            common:
+              - 'libs/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'tsconfig.json'
+              - 'nest-cli.json'
+            api_gateway:
+              - 'apps/api-gateway/**'
+            user_service:
+              - 'apps/user-service/**'
+            product_service:
+              - 'apps/product-service/**'
+            order_service:
+              - 'apps/order-service/**'
+            payment_service:
+              - 'apps/payment-service/**'
+
+      - name: Build dynamic matrix
+        id: matrix
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const common = '${{ steps.filter.outputs.common }}' === 'true';
+
+            const changed = {
+              apiGateway: common || '${{ steps.filter.outputs.api_gateway }}' === 'true',
+              userService: common || '${{ steps.filter.outputs.user_service }}' === 'true',
+              productService: common || '${{ steps.filter.outputs.product_service }}' === 'true',
+              orderService: common || '${{ steps.filter.outputs.order_service }}' === 'true',
+              paymentService: common || '${{ steps.filter.outputs.payment_service }}' === 'true',
+            };
+
+            const include = [];
+            if (changed.apiGateway) {
+              include.push({ service: 'api-gateway', dockerfile: 'apps/api-gateway/Dockerfile', image: 'api-gateway' });
+            }
+            if (changed.userService) {
+              include.push({ service: 'user-service', dockerfile: 'apps/user-service/Dockerfile', image: 'user-service' });
+            }
+            if (changed.productService) {
+              include.push({ service: 'product-service', dockerfile: 'apps/product-service/Dockerfile', image: 'product-service' });
+            }
+            if (changed.orderService) {
+              include.push({ service: 'order-service', dockerfile: 'apps/order-service/Dockerfile', image: 'order-service' });
+            }
+            if (changed.paymentService) {
+              include.push({ service: 'payment-service', dockerfile: 'apps/payment-service/Dockerfile', image: 'payment-service' });
+            }
+
+            core.setOutput('matrix', JSON.stringify({ include }));
+            core.setOutput('has_changes', include.length > 0 ? 'true' : 'false');
+
+  build-and-push:
+    name: Build & Push (${{ matrix.service }})
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set image registry prefix
+        id: image
+        run: |
+          echo "prefix=${{ env.REGISTRY }}/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Set image tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push ${{ matrix.service }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          platforms: linux/amd64
+          tags:
+            ${{ steps.image.outputs.prefix }}/${{ matrix.image }}:${{
+            steps.tag.outputs.value }}
+          cache-from: type=gha,scope=ecom-${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=ecom-${{ matrix.service }}
+
+  deploy:
+    name: Deploy to Server
+    needs: [detect-changes, build-and-push]
+    if:
+      always() && (needs.detect-changes.outputs.has_changes == 'true' ||
+      (github.event_name == 'workflow_dispatch' && inputs.force_deploy == true))
+      && (needs.build-and-push.result == 'success' ||
+      needs.build-and-push.result == 'skipped')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set image tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            mkdir -p "${{ secrets.BACKEND_DEPLOY_PATH }}"
+            export IMAGE_TAG="${{ steps.tag.outputs.value }}"
+            DEPLOY_PATH="${{ secrets.BACKEND_DEPLOY_PATH }}"
+            REPO_DIR="${{ secrets.BACKEND_REPO_DIR }}"
+            if [ -z "$REPO_DIR" ]; then
+              REPO_DIR="$HOME/backend-repo"
+            fi
+            COMPOSE_SOURCE="${{ secrets.BACKEND_COMPOSE_SOURCE }}"
+            if [ -z "$COMPOSE_SOURCE" ]; then
+              COMPOSE_SOURCE="docker-compose.yml"
+            fi
+
+            if [ ! -d "$REPO_DIR/.git" ]; then
+              if [ -n "${{ secrets.BACKEND_REPO_TOKEN }}" ]; then
+                git clone "https://x-access-token:${{ secrets.BACKEND_REPO_TOKEN }}@github.com/${{ github.repository }}.git" "$REPO_DIR"
+              else
+                git clone "https://github.com/${{ github.repository }}.git" "$REPO_DIR"
+              fi
+            else
+              git -C "$REPO_DIR" fetch --all --prune
+            fi
+
+            git -C "$REPO_DIR" checkout "${{ github.ref_name }}"
+            git -C "$REPO_DIR" reset --hard "origin/${{ github.ref_name }}"
+
+            if [ ! -f "$REPO_DIR/$COMPOSE_SOURCE" ]; then
+              echo "Compose source file not found: $REPO_DIR/$COMPOSE_SOURCE"
+              exit 1
+            fi
+
+            cp "$REPO_DIR/$COMPOSE_SOURCE" "$DEPLOY_PATH/docker-compose.yml"
+            cd "$DEPLOY_PATH"
+            printf '%s' "${{ secrets.PROD_ENV }}" > .env
+
+            docker compose --env-file .env -f docker-compose.yml pull
+            docker compose --env-file .env -f docker-compose.yml up -d --remove-orphans
+
+  no-changes:
+    name: No Service Changes
+    needs: detect-changes
+    if:
+      needs.detect-changes.outputs.has_changes != 'true' && !(github.event_name
+      == 'workflow_dispatch' && inputs.force_deploy == true)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip publish
+        run: echo "No changed service paths detected. Skipping Docker publish."

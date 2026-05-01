@@ -1,10 +1,23 @@
 #!/bin/bash
 
 # Define services based on the package.json scripts
-SERVICES=("api-gateway" "user-service" "product-service" "order-service" "payment-service")
+SERVICES=("api-gateway" "user-service" "order-service" "product-service" "payment-service")
+SERVICE_PORTS=(3000 4001 4002 4003 4004 4005)
+LOCAL_HOST="127.0.0.1"
+
+kill_service_ports() {
+    echo "Ensuring service ports are freed"
+    local pids
+    pids=$(lsof -tiTCP:3000,4001,4002,4003,4004,4005 -sTCP:LISTEN)
+
+    if [ -n "$pids" ]; then
+        echo "$pids" | xargs -r kill -9
+    fi
+}
 
 start_services() {
     echo "Starting all services in development mode..."
+    echo "Using local service discovery host: $LOCAL_HOST"
     mkdir -p logs
 
     for service in "${SERVICES[@]}"; do
@@ -17,7 +30,12 @@ start_services() {
         esac
         
         echo "Starting $service..."
-        nohup pnpm run "$script" > "logs/$service.log" 2>&1 &
+        nohup env \
+            USER_SERVICE_HOST="$LOCAL_HOST" \
+            PRODUCT_SERVICE_HOST="$LOCAL_HOST" \
+            ORDER_SERVICE_HOST="$LOCAL_HOST" \
+            PAYMENT_SERVICE_HOST="$LOCAL_HOST" \
+            pnpm run "$script" > "logs/$service.log" 2>&1 &
         echo $! > "logs/$service.pid"
     done
     
@@ -29,6 +47,7 @@ stop_services() {
     echo "Stopping all services..."
     if [ ! -d "logs" ]; then
         echo "Logs directory not found. Are services running?"
+        kill_service_ports
         return
     fi
     for service in "${SERVICES[@]}"; do
@@ -43,6 +62,8 @@ stop_services() {
             echo "No PID file found for $service"
         fi
     done
+
+    kill_service_ports
     echo "All services stopped."
 }
 

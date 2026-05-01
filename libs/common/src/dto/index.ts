@@ -11,9 +11,12 @@ import {
   IsArray,
   ValidateNested,
   IsPositive,
+  IsOptional,
+  IsEnum,
+  IsUrl,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 // --- User DTOs ---
 export class RegisterUserDto {
@@ -31,6 +34,51 @@ export class RegisterUserDto {
   @IsString()
   @MinLength(6)
   password: string;
+
+  @ApiProperty({ enum: ['user', 'admin'], default: 'user', required: false })
+  @IsOptional()
+  @IsEnum(['user', 'admin'])
+  role?: string;
+}
+
+export class RefreshSessionDto {
+  @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' })
+  @IsString()
+  @IsNotEmpty()
+  refreshToken: string;
+}
+
+export class UpdateUserDto {
+  @ApiProperty({ example: 'John Smith', required: false })
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @ApiProperty({ example: 'john.smith@example.com', required: false })
+  @IsEmail()
+  @IsOptional()
+  email?: string;
+
+  @ApiProperty({
+    example: 'https://www.gravatar.com/avatar/...',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  avatar?: string;
+}
+
+export class ChangePasswordDto {
+  @ApiProperty({ example: 'oldPassword123' })
+  @IsString()
+  @IsNotEmpty()
+  oldPassword: string;
+
+  @ApiProperty({ example: 'newPassword123', minLength: 6 })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  newPassword: string;
 }
 
 export class LoginUserDto {
@@ -43,6 +91,25 @@ export class LoginUserDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+}
+
+export class ListProductsQueryDto {
+  @ApiProperty({ required: false, example: 12, default: 12 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  limit?: number;
+
+  @ApiProperty({ required: false, example: 0, default: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  offset?: number;
+
+  @ApiProperty({ required: false, example: 'Audio' })
+  @IsOptional()
+  @IsString()
+  category?: string;
 }
 
 // --- Product DTOs ---
@@ -72,6 +139,15 @@ export class CreateProductDto {
   @IsString()
   @IsNotEmpty()
   category: string;
+
+  @ApiPropertyOptional({
+    example: 'https://cdn.example.com/products/headphones.jpg',
+    description: 'Public URL for the product image',
+  })
+  @IsOptional()
+  @IsString()
+  @IsUrl({ require_tld: false })
+  imageUrl?: string;
 }
 
 // --- Order DTOs ---
@@ -104,6 +180,11 @@ export class ProcessPaymentDto {
   @IsNotEmpty()
   orderId: string;
 
+  @ApiProperty({ example: '65a1b2c3d4e5f6a7b8c9d0e1' })
+  @IsString()
+  @IsNotEmpty()
+  userId: string;
+
   @ApiProperty({ example: 199.98 })
   @IsNumber()
   @IsPositive()
@@ -122,4 +203,52 @@ export class ValidateStockDto {
   @IsNumber()
   @Min(1)
   quantity: number;
+}
+
+// --- Cart DTOs ---
+
+export class AddCartItemDto {
+  @ApiProperty({ example: '65a1b2c3d4e5f6a7b8c9d0e1' })
+  @IsString()
+  @IsNotEmpty()
+  productId: string;
+
+  @ApiProperty({ example: 'Wireless Headphones' })
+  @IsString()
+  @IsNotEmpty()
+  productName: string;
+
+  @ApiProperty({ example: 99.99 })
+  @IsNumber()
+  @IsPositive()
+  price: number;
+
+  @ApiProperty({ example: 1 })
+  @IsNumber()
+  @Min(1)
+  quantity: number;
+
+  @ApiProperty({ example: 'https://example.com/image.jpg', required: false })
+  @IsString()
+  @IsOptional()
+  image?: string;
+}
+
+export class UpdateCartItemDto {
+  @ApiProperty({ example: '65a1b2c3d4e5f6a7b8c9d0e1' })
+  @IsString()
+  @IsNotEmpty()
+  productId: string;
+
+  @ApiProperty({ example: 3 })
+  @IsNumber()
+  @Min(1)
+  quantity: number;
+}
+
+export class RemoveCartItemDto {
+  @ApiProperty({ example: '65a1b2c3d4e5f6a7b8c9d0e1' })
+  @IsString()
+  @IsNotEmpty()
+  productId: string;
 }

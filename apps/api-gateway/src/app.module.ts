@@ -2,6 +2,7 @@
 // API Gateway - Root Module
 // ============================================
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ClientProxyFactory, Transport } from '@nestjs/microservices';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
@@ -12,11 +13,17 @@ import {
   PRODUCT_SERVICE,
   ORDER_SERVICE,
   PAYMENT_SERVICE,
+  CART_SERVICE,
 } from '@app/common';
 import { AuthController } from './controllers/auth.controller';
 import { UserController } from './controllers/user.controller';
+import { CartController } from './controllers/cart.controller';
+import { OrderController } from './controllers/order.controller';
+import { ProductController } from './controllers/product.controller';
 import { JwtStrategy } from './guards/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { UserService } from './services/user.service';
 
 @Module({
   imports: [
@@ -35,10 +42,26 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
       }),
     }),
   ],
-  controllers: [AuthController, UserController],
+  controllers: [
+    AuthController,
+    UserController,
+    ProductController,
+    CartController,
+    OrderController,
+  ],
   providers: [
     JwtStrategy,
     JwtAuthGuard,
+    RolesGuard,
+    {
+      provide: APP_GUARD,
+      useExisting: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useExisting: RolesGuard,
+    },
+    UserService,
     // TCP Client → User Service
     {
       provide: USER_SERVICE,
@@ -66,6 +89,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
         }),
     },
     // TCP Client → Order Service
+    // NOTE: Cart and Order are both handled by order-service
     {
       provide: ORDER_SERVICE,
       inject: [AppConfigService],
@@ -88,6 +112,19 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
           options: {
             host: config.payment.host,
             port: config.payment.port,
+          },
+        }),
+    },
+    // TCP Client → Cart Service (same as order-service — merged)
+    {
+      provide: CART_SERVICE,
+      inject: [AppConfigService],
+      useFactory: (config: AppConfigService) =>
+        ClientProxyFactory.create({
+          transport: Transport.TCP,
+          options: {
+            host: config.order.host,
+            port: config.order.port,
           },
         }),
     },

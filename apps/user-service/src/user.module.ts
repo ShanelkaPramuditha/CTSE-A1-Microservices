@@ -5,6 +5,8 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppConfigModule, AppConfigService } from '@app/common';
 import { JwtModule } from '@nestjs/jwt';
+import { ClientProxyFactory, Transport } from '@nestjs/microservices';
+import { ORDER_SERVICE, PAYMENT_SERVICE } from '@app/common/constants';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { User, UserSchema } from './schemas/user.schema';
@@ -34,6 +36,32 @@ import { User, UserSchema } from './schemas/user.schema';
     }),
   ],
   controllers: [UserController],
-  providers: [UserService],
+  providers: [
+    UserService,
+    {
+      provide: ORDER_SERVICE,
+      inject: [AppConfigService],
+      useFactory: (config: AppConfigService) =>
+        ClientProxyFactory.create({
+          transport: Transport.TCP,
+          options: {
+            host: config.order.host,
+            port: config.order.port,
+          },
+        }),
+    },
+    {
+      provide: PAYMENT_SERVICE,
+      inject: [AppConfigService],
+      useFactory: (config: AppConfigService) =>
+        ClientProxyFactory.create({
+          transport: Transport.TCP,
+          options: {
+            host: config.payment.host,
+            port: config.payment.port,
+          },
+        }),
+    },
+  ],
 })
 export class UserModule {}

@@ -1,53 +1,101 @@
-version: '3.8'
+name: ecommerce-services
+
+x-service-env: &service-env
+  PORT_API_GATEWAY: ${PORT_API_GATEWAY:-3000}
+  USER_SERVICE_HOST: ${USER_SERVICE_HOST:-ecommerce-user-service}
+  USER_SERVICE_PORT: ${USER_SERVICE_PORT:-4001}
+  PRODUCT_SERVICE_HOST: ${PRODUCT_SERVICE_HOST:-ecommerce-product-service}
+  PRODUCT_SERVICE_PORT: ${PRODUCT_SERVICE_PORT:-4002}
+  ORDER_SERVICE_HOST: ${ORDER_SERVICE_HOST:-ecommerce-order-service}
+  ORDER_SERVICE_PORT: ${ORDER_SERVICE_PORT:-4003}
+  PAYMENT_SERVICE_HOST: ${PAYMENT_SERVICE_HOST:-ecommerce-payment-service}
+  PAYMENT_SERVICE_PORT: ${PAYMENT_SERVICE_PORT:-4004}
+  MONGO_URI_USER: ${MONGO_URI_USER}
+  MONGO_URI_PRODUCT: ${MONGO_URI_PRODUCT}
+  MONGO_URI_ORDER: ${MONGO_URI_ORDER}
+  MONGO_URI_PAYMENT: ${MONGO_URI_PAYMENT}
+  JWT_SECRET: ${JWT_SECRET}
+  JWT_EXPIRATION: ${JWT_EXPIRATION:-3600s}
 
 services:
-  # --- User Service ---
   user-service:
-    build:
-      context: .
-      dockerfile: apps/user-service/Dockerfile
+    image: ${IMAGE_REGISTRY:-ghcr.io/shanelkapramuditha}/user-service:${IMAGE_TAG:-latest}
     container_name: ecommerce-user-service
+    pull_policy: always
+    restart: unless-stopped
     environment:
-      - USER_SERVICE_HOST=0.0.0.0
-      - USER_SERVICE_PORT=4001
-      - MONGO_URI_USER=mongodb://mongo:27017/user-db
-      - JWT_SECRET=${JWT_SECRET:-supersecret}
-      - JWT_EXPIRATION=${JWT_EXPIRATION:-3600s}
-    ports:
-      - '4001:4001'
+      <<: *service-env
+    volumes:
+      - user-service-data:/app/logs
     networks:
       - ecommerce-network
-    restart: unless-stopped
 
-  # --- API Gateway ---
-  api-gateway:
-    build:
-      context: .
-      dockerfile: apps/api-gateway/Dockerfile
-    container_name: ecommerce-api-gateway
+  product-service:
+    image: ${IMAGE_REGISTRY:-ghcr.io/shanelkapramuditha}/product-service:${IMAGE_TAG:-latest}
+    container_name: ecommerce-product-service
+    pull_policy: always
+    restart: unless-stopped
     environment:
-      - PORT_API_GATEWAY=3000
-      - USER_SERVICE_HOST=user-service
-      - USER_SERVICE_PORT=4001
-      - PRODUCT_SERVICE_HOST=product-service
-      - PRODUCT_SERVICE_PORT=4002
-      - ORDER_SERVICE_HOST=order-service
-      - ORDER_SERVICE_PORT=4003
-      - PAYMENT_SERVICE_HOST=payment-service
-      - PAYMENT_SERVICE_PORT=4004
-      - JWT_SECRET=${JWT_SECRET:-supersecret}
-      - JWT_EXPIRATION=${JWT_EXPIRATION:-3600s}
-    ports:
-      - '3000:3000'
-    depends_on:
-      - user-service
+      <<: *service-env
+    volumes:
+      - product-service-data:/app/logs
     networks:
       - ecommerce-network
+
+  order-service:
+    image: ${IMAGE_REGISTRY:-ghcr.io/shanelkapramuditha}/order-service:${IMAGE_TAG:-latest}
+    container_name: ecommerce-order-service
+    pull_policy: always
     restart: unless-stopped
+    environment:
+      <<: *service-env
+    volumes:
+      - order-service-data:/app/logs
+    networks:
+      - ecommerce-network
+
+  payment-service:
+    image: ${IMAGE_REGISTRY:-ghcr.io/shanelkapramuditha}/payment-service:${IMAGE_TAG:-latest}
+    container_name: ecommerce-payment-service
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      <<: *service-env
+    volumes:
+      - payment-service-data:/app/logs
+    networks:
+      - ecommerce-network
+
+  api-gateway:
+    image: ${IMAGE_REGISTRY:-ghcr.io/shanelkapramuditha}/api-gateway:${IMAGE_TAG:-latest}
+    container_name: ecommerce-api-gateway
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      <<: *service-env
+    ports:
+      - ${PORT_API_GATEWAY:-3000}:3000
+    volumes:
+      - api-gateway-data:/app/logs
+    depends_on:
+      user-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+    networks:
+      - ecommerce-network
 
 volumes:
-  mongo-data:
-    driver: local
+  user-service-data:
+  product-service-data:
+  order-service-data:
+  payment-service-data:
+  api-gateway-data:
+
 
 networks:
   ecommerce-network:
