@@ -206,7 +206,7 @@ export class OrderService {
       status: OrderStatus.PENDING,
     });
     const savedOrder = await order.save();
-    this.logger.log(`Order created: ${savedOrder._id}, total: $${totalAmount}`);
+    this.logger.log(`Order created: ${savedOrder._id}, total: LKR ${totalAmount}`);
 
     // 4. Clear the cart now that the order is placed
     cart.items = [];

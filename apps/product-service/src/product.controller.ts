@@ -4,7 +4,11 @@
 import { Controller, Logger } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { PRODUCT_PATTERNS } from '@app/common/constants';
-import { CreateProductDto, ValidateStockDto } from '@app/common/dto';
+import {
+  CreateProductDto,
+  ListProductsQueryDto,
+  ValidateStockDto,
+} from '@app/common/dto';
 import { ProductService } from './product.service';
 
 @Controller()
@@ -28,9 +32,17 @@ export class ProductController {
    * TCP Pattern: get_products
    */
   @MessagePattern(PRODUCT_PATTERNS.GET_ALL)
-  async getProducts() {
+  async getProducts(@Payload() query: ListProductsQueryDto) {
     this.logger.log('Fetching all products');
-    return this.productService.findAll();
+    if (query?.category) {
+      return this.productService.findByCategory(
+        query.category,
+        query.limit,
+        query.offset,
+      );
+    }
+
+    return this.productService.findAll(query?.limit, query?.offset);
   }
 
   /**

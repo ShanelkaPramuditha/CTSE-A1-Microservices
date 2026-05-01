@@ -21,6 +21,8 @@ type ProductOrderStatRow = {
 @Injectable()
 export class ProductService {
   private readonly logger = new Logger(ProductService.name);
+  private readonly DEFAULT_LIMIT = 12;
+  private readonly MAX_LIMIT = 48;
 
   constructor(
     @InjectModel(Product.name)
@@ -41,9 +43,69 @@ export class ProductService {
   /**
    * Get all products, sorted by newest first
    */
-  async findAll() {
-    const products = await this.productModel.find().sort({ createdAt: -1 }).exec();
-    return this.attachOrderAvailability(products);
+  async findAll(limit = this.DEFAULT_LIMIT, offset = 0) {
+    return this.findMany({}, limit, offset);
+  }
+
+  async findByCategory(
+    category: string,
+    limit = this.DEFAULT_LIMIT,
+    offset = 0,
+  ) {
+    const escapedCategory = category.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    return this.findMany(
+      {
+        category: {
+          $regex: `^${escapedCategory}$`,
+          $options: 'i',
+        },
+      },
+      limit,
+      offset,
+    );
+  }
+
+  private async findMany(
+    filter: Record<string, unknown>,
+    limit = this.DEFAULT_LIMIT,
+    offset = 0,
+  ) {
+    const safeLimit = Math.min(
+      Math.max(Number(limit) || this.DEFAULT_LIMIT, 1),
+      this.MAX_LIMIT,
+    );
+    const safeOffset = Math.max(Number(offset) || 0, 0);
+
+    const [products, total, categories] = await Promise.all([
+      this.productModel
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip(safeOffset)
+        .limit(safeLimit)
+        .exec(),
+      this.productModel.countDocuments(filter).exec(),
+      this.productModel.distinct('category').exec(),
+    ]);
+
+    const data = await this.attachOrderAvailability(products);
+
+    return {
+      data,
+      total,
+      limit: safeLimit,
+      offset: safeOffset,
+      hasMore: safeOffset + data.length < total,
+      categories: Array.isArray(categories)
+        ? categories
+            .filter(
+              (category): category is string => typeof category === 'string',
+            )
+            .map((category) => category.trim())
+            .filter((category) => category.length > 0)
+            .sort((left, right) => left.localeCompare(right))
+        : [],
+    };
   }
 
   /**
@@ -68,10 +130,9 @@ export class ProductService {
     try {
       const rows = await firstValueFrom(
         this.orderClient
-          .send<ProductOrderStatRow[]>(
-            ORDER_PATTERNS.GET_PRODUCTS_ORDER_STATS,
-            { productIds },
-          )
+          .send<
+            ProductOrderStatRow[]
+          >(ORDER_PATTERNS.GET_PRODUCTS_ORDER_STATS, { productIds })
           .pipe(
             timeout(5000),
             catchError((err) => {

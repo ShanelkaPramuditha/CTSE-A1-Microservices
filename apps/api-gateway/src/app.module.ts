@@ -2,6 +2,7 @@
 // API Gateway - Root Module
 // ============================================
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ClientProxyFactory, Transport } from '@nestjs/microservices';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
@@ -21,6 +22,7 @@ import { OrderController } from './controllers/order.controller';
 import { ProductController } from './controllers/product.controller';
 import { JwtStrategy } from './guards/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
 import { UserService } from './services/user.service';
 
 @Module({
@@ -50,6 +52,15 @@ import { UserService } from './services/user.service';
   providers: [
     JwtStrategy,
     JwtAuthGuard,
+    RolesGuard,
+    {
+      provide: APP_GUARD,
+      useExisting: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useExisting: RolesGuard,
+    },
     UserService,
     // TCP Client → User Service
     {

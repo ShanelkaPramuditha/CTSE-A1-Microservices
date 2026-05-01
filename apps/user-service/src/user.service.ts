@@ -60,6 +60,7 @@ type UserPayment = {
 export class UserService {
   private readonly logger = new Logger(UserService.name);
   private readonly SALT_ROUNDS = 10;
+  private readonly REFRESH_TOKEN_EXPIRATION = '7d';
 
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
@@ -77,6 +78,46 @@ export class UserService {
       .update(email.trim().toLowerCase())
       .digest('hex');
     return `https://www.gravatar.com/avatar/${hash}?d=identicon&s=200`;
+  }
+
+  private buildJwtPayload(user: UserDocument): IJwtPayload {
+    return {
+      sub: user._id.toString(),
+      email: user.email,
+      role: user.role as UserRole,
+    };
+  }
+
+  private buildUserResponse(user: UserDocument) {
+    return {
+      _id: user._id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+      role: user.role as UserRole,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
+
+  private async issueSessionTokens(user: UserDocument) {
+    const payload = this.buildJwtPayload(user);
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.jwtService.sign(payload, {
+      expiresIn: this.REFRESH_TOKEN_EXPIRATION,
+    });
+
+    user.refreshTokenHash = await bcrypt.hash(refreshToken, this.SALT_ROUNDS);
+    user.refreshTokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await user.save();
+
+    return { accessToken, refreshToken };
+  }
+
+  private async clearSession(user: UserDocument) {
+    user.refreshTokenHash = undefined;
+    user.refreshTokenExpiresAt = undefined;
+    await user.save();
   }
 
   /**
@@ -108,14 +149,7 @@ export class UserService {
     const savedUser = await user.save();
     this.logger.log(`User registered successfully: ${savedUser.email}`);
 
-    return {
-      _id: savedUser._id,
-      email: savedUser.email,
-      name: savedUser.name,
-      avatar: savedUser.avatar,
-      role: savedUser.role as UserRole,
-      createdAt: savedUser.createdAt,
-    };
+    return this.buildUserResponse(savedUser);
   }
 
   /**
@@ -137,26 +171,74 @@ export class UserService {
     }
 
     // Generate JWT
-    const payload: IJwtPayload = {
-      sub: user._id.toString(),
-      email: user.email,
-      role: user.role as UserRole,
-    };
-
-    const accessToken = this.jwtService.sign(payload);
+    const { accessToken, refreshToken } = await this.issueSessionTokens(user);
 
     this.logger.log(`User logged in successfully: ${user.email}`);
 
     return {
       accessToken,
-      user: {
-        _id: user._id,
-        email: user.email,
-        name: user.name,
-        avatar: user.avatar,
-        role: user.role as UserRole,
-      },
+      refreshToken,
+      user: this.buildUserResponse(user),
     };
+  }
+
+  async refreshSession(refreshToken: string) {
+    const payload =
+      await this.jwtService.verifyAsync<IJwtPayload>(refreshToken);
+
+    if (!payload.sub || !payload.email || !payload.role) {
+      throw new RpcException(
+        new UnauthorizedException('Invalid session token'),
+      );
+    }
+
+    const user = await this.userModel.findById(payload.sub).exec();
+    if (!user || !user.refreshTokenHash) {
+      throw new RpcException(new UnauthorizedException('Session expired'));
+    }
+
+    const isTokenValid = await bcrypt.compare(
+      refreshToken,
+      user.refreshTokenHash,
+    );
+    if (!isTokenValid) {
+      throw new RpcException(new UnauthorizedException('Session expired'));
+    }
+
+    const { accessToken, refreshToken: nextRefreshToken } =
+      await this.issueSessionTokens(user);
+
+    this.logger.log(`User session refreshed: ${user.email}`);
+
+    return {
+      accessToken,
+      refreshToken: nextRefreshToken,
+      user: this.buildUserResponse(user),
+    };
+  }
+
+  async logout(refreshToken: string) {
+    try {
+      const payload =
+        await this.jwtService.verifyAsync<IJwtPayload>(refreshToken);
+      if (payload?.sub) {
+        const user = await this.userModel.findById(payload.sub).exec();
+        if (user && user.refreshTokenHash) {
+          const isTokenValid = await bcrypt.compare(
+            refreshToken,
+            user.refreshTokenHash,
+          );
+          if (isTokenValid) {
+            await this.clearSession(user);
+          }
+        }
+      }
+    } catch {
+      // Logout is idempotent; invalid or expired tokens still clear client cookies.
+    }
+
+    this.logger.log('User session logged out');
+    return { success: true, message: 'Logged out successfully' };
   }
 
   /**
@@ -251,6 +333,7 @@ export class UserService {
 
     // Hash and save new password
     user.password = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
+    await this.clearSession(user);
     await user.save();
 
     this.logger.log(`Password changed for user: ${user.email}`);
@@ -478,5 +561,15 @@ export class UserService {
       },
       topProducts,
     };
+  }
+
+  async validateUser(userId: string) {
+    const exists = await this.userModel.exists({ _id: userId });
+
+    if (!exists) {
+      throw new RpcException('User not found');
+    }
+
+    return { valid: true };
   }
 }

@@ -20,7 +20,7 @@ export class PaymentController {
   @MessagePattern(PAYMENT_PATTERNS.PROCESS)
   async processPayment(@Payload() processPaymentDto: ProcessPaymentDto) {
     this.logger.log(
-      `Processing payment for order: ${processPaymentDto.orderId}, amount: $${processPaymentDto.amount}`,
+      `Processing payment for order: ${processPaymentDto.orderId}, amount: LKR ${processPaymentDto.amount}`,
     );
     return this.paymentService.processPayment(processPaymentDto);
   }
