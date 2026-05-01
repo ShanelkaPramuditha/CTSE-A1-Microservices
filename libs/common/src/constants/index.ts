@@ -19,6 +19,7 @@ export const USER_PATTERNS = {
   UPDATE_PROFILE: 'update_user_profile',
   CHANGE_PASSWORD: 'change_password',
   GET_DASHBOARD_STATS: 'get_user_dashboard_stats',
+  VALIDATE_USER: 'validate_user',
 } as const;
 
 // --- Product Service TCP Patterns ---

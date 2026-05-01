@@ -1,12 +1,21 @@
 // ============================================
 // Payment Service - Business Logic (Simulated)
 // ============================================
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import { Payment, PaymentDocument } from './schemas/payment.schema';
 import { ProcessPaymentDto } from '@app/common/dto';
-import { PaymentStatus } from '@app/common/constants';
+import {
+  ORDER_PATTERNS,
+  ORDER_SERVICE,
+  USER_PATTERNS,
+  USER_SERVICE,
+  OrderStatus,
+  PaymentStatus,
+} from '@app/common/constants';
 @Injectable()
 export class PaymentService {
   private readonly logger = new Logger(PaymentService.name);
@@ -14,24 +23,36 @@ export class PaymentService {
   constructor(
     @InjectModel(Payment.name)
     private readonly paymentModel: Model<PaymentDocument>,
+    @Inject(ORDER_SERVICE)
+    private readonly orderClient: ClientProxy,
+    @Inject(USER_SERVICE)
+    private readonly userClient: ClientProxy,
   ) {}
 
   /**
-   * Simulate payment processing
-   * - 85% chance of success (simulated)
-   * - Generates a transaction ID on success
+   * Process payment
+   * - Validates user
+   * - Generates a transaction ID
    * - Stores payment record in MongoDB
+   * - Updates order status
    */
   async processPayment(processPaymentDto: ProcessPaymentDto) {
     const { orderId, amount, userId } = processPaymentDto;
 
-    // Simulate payment gateway processing delay
-    await this.simulateProcessingDelay();
+    // 1. Validate user exists
+    try {
+      await firstValueFrom(
+        this.userClient.send(USER_PATTERNS.VALIDATE_USER, { userId }),
+      );
+      this.logger.log(`User ${userId} validated for payment`);
+    } catch (error) {
+      this.logger.error(`User validation failed for userId: ${userId}`, error);
+      throw new Error('User validation failed');
+    }
 
-    // Simulate success/failure (85% success rate)
-    const isSuccess = Math.random() < 0.85;
-    const status = isSuccess ? PaymentStatus.SUCCESS : PaymentStatus.FAILED;
-    const transactionId = isSuccess ? this.generateTransactionId() : undefined;
+    // Process payment (always successful)
+    const status = PaymentStatus.SUCCESS;
+    const transactionId = this.generateTransactionId();
 
     // Create payment record
     const payment = new this.paymentModel({
@@ -44,29 +65,27 @@ export class PaymentService {
 
     const savedPayment = await payment.save();
 
-    if (isSuccess) {
-      this.logger.log(
-        `✅ Payment SUCCESS for order ${orderId} | Transaction: ${transactionId} | Amount: $${amount}`,
-      );
-    } else {
-      this.logger.warn(
-        `❌ Payment FAILED for order ${orderId} | Amount: $${amount}`,
-      );
-    }
+    // Update order status to PAID
+    await firstValueFrom(
+      this.orderClient.send(ORDER_PATTERNS.UPDATE_STATUS, {
+        orderId,
+        status: OrderStatus.PAID,
+        paymentId: savedPayment._id,
+      }),
+    );
 
-    return savedPayment;
+    this.logger.log(
+      `✅ Payment SUCCESS for order ${orderId} | Transaction: ${transactionId} | Amount: $${amount}`,
+    );
+
+    return {
+      status: savedPayment.status,
+      _id: savedPayment._id.toString(),
+    };
   }
 
   async getPaymentsByUser(userId: string) {
     return this.paymentModel.find({ userId }).sort({ createdAt: -1 }).exec();
-  }
-
-  /**
-   * Simulate processing delay (500ms - 2000ms)
-   */
-  private simulateProcessingDelay(): Promise<void> {
-    const delay = Math.floor(Math.random() * 1500) + 500;
-    return new Promise((resolve) => setTimeout(resolve, delay));
   }
 
   /**

@@ -96,4 +96,14 @@ export class UserController {
     this.logger.log(`Fetching dashboard stats for user: ${data.userId}`);
     return this.userService.getDashboardStats(data.userId);
   }
+
+  /**
+   * Validate user
+   * TCP Pattern: validate_user
+   */
+  @MessagePattern(USER_PATTERNS.VALIDATE_USER)
+  async validateUser(@Payload() data: { userId: string }) {
+    this.logger.log(`Validating id for user: ${data.userId}`);
+    return this.userService.validateUser(data.userId);
+  }
 }
