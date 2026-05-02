@@ -13,6 +13,7 @@ async function bootstrap() {
   // Temporary context to read config, then close it
   const appContext = await NestFactory.createApplicationContext(OrderModule);
   const config = appContext.get(AppConfigService);
+  
 
   const host = config.order.host;
   const port = config.order.port;
@@ -33,7 +34,7 @@ async function bootstrap() {
 
   await app.listen();
   logger.log(`🛒 Order Service listening on ${host}:${port}`);
-  logger.log(`   Handles: cart (add/update/remove/clear) + checkout + orders`);
+  logger.log(`   Handles cart (add/update/remove/clear) + checkout + orders`);
 }
 
 bootstrap();
