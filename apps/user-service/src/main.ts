@@ -32,7 +32,7 @@ async function bootstrap() {
   );
 
   await app.listen();
-  logger.log(`🚀 User Service is listening on ${host}:${port}`);
+  logger.log(`🚀 User Service is listening on: ${host}:${port}`);
 }
 
 bootstrap();
