@@ -17,6 +17,7 @@ import {
   AddCartItemDto,
   UpdateCartItemDto,
   RemoveCartItemDto,
+  CheckoutDto,
   CreateOrderDto,
 } from '@app/common/dto';
 import {
@@ -136,7 +137,7 @@ export class OrderService {
    * Checkout: read the user's cart → validate stock via Product Service
    * → create order → clear cart → trigger payment via Payment Service
    */
-  async checkout(userId: string) {
+  async checkout(userId: string, checkoutDto: CheckoutDto) {
     this.logger.log(`Checkout initiated for user: ${userId}`);
 
     // 1. Load cart
@@ -198,12 +199,23 @@ export class OrderService {
       totalAmount += price * item.quantity;
     }
 
+    const paymentMethod = checkoutDto?.paymentMethod ?? 'COD';
+
     // 3. Create order record
     const order = new this.orderModel({
       userId,
       items: validatedItems,
       totalAmount,
-      status: OrderStatus.PENDING,
+      status:
+        paymentMethod === 'COD' ? OrderStatus.CONFIRMED : OrderStatus.PAYMENT_PROCESSING,
+      paymentMethod,
+      shippingAddress: checkoutDto?.address,
+      cardLast4:
+        paymentMethod === 'CARD'
+          ? String(checkoutDto?.card?.cardNumber ?? '').slice(-4) || undefined
+          : undefined,
+      cardHolderName:
+        paymentMethod === 'CARD' ? checkoutDto?.card?.cardHolderName : undefined,
     });
     const savedOrder = await order.save();
     this.logger.log(`Order created: ${savedOrder._id}, total: LKR ${totalAmount}`);
@@ -214,27 +226,30 @@ export class OrderService {
     await cart.save();
     this.logger.log(`Cart cleared for user: ${userId}`);
 
-    // 5. Trigger payment
-    try {
-      const paymentResult = await firstValueFrom(
-        this.paymentClient.send(PAYMENT_PATTERNS.PROCESS, {
-          orderId: savedOrder._id.toString(),
-          userId,
-          amount: totalAmount,
-        }),
-      );
+    // 5. Trigger payment only for card payments (simulated).
+    if (paymentMethod === 'CARD') {
+      try {
+        const paymentResult = await firstValueFrom(
+          this.paymentClient.send(PAYMENT_PATTERNS.PROCESS, {
+            orderId: savedOrder._id.toString(),
+            userId,
+            amount: totalAmount,
+          }),
+        );
 
-      savedOrder.status =
-        paymentResult.status === 'SUCCESS'
-          ? OrderStatus.PAID
-          : OrderStatus.PAYMENT_FAILED;
-      if (paymentResult._id) savedOrder.paymentId = paymentResult._id;
-      await savedOrder.save();
-      this.logger.log(`Payment ${paymentResult.status} for order ${savedOrder._id}`);
-    } catch (err) {
-      savedOrder.status = OrderStatus.PAYMENT_FAILED;
-      await savedOrder.save();
-      this.logger.error(`Payment failed for order ${savedOrder._id}: ${err?.message}`);
+        savedOrder.status =
+          paymentResult.status === 'SUCCESS'
+            ? OrderStatus.PAID
+            : OrderStatus.PAYMENT_FAILED;
+        if (paymentResult._id) savedOrder.paymentId = paymentResult._id;
+        await savedOrder.save();
+        this.logger.log(`Payment ${paymentResult.status} for order ${savedOrder._id}`);
+      } catch (err: unknown) {
+        savedOrder.status = OrderStatus.PAYMENT_FAILED;
+        await savedOrder.save();
+        const message = err instanceof Error ? err.message : String(err);
+        this.logger.error(`Payment failed for order ${savedOrder._id}: ${message}`);
+      }
     }
 
     return savedOrder;
