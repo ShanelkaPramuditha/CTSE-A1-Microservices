@@ -69,6 +69,29 @@ export class OrderItem {
 
 export const OrderItemSchema = SchemaFactory.createForClass(OrderItem);
 
+@Schema({ _id: false })
+export class ShippingAddress {
+  @Prop({ required: true })
+  fullName: string;
+
+  @Prop({ required: true })
+  phone: string;
+
+  @Prop({ required: true })
+  addressLine1: string;
+
+  @Prop()
+  addressLine2?: string;
+
+  @Prop({ required: true })
+  city: string;
+
+  @Prop({ required: true })
+  postalCode: string;
+}
+
+export const ShippingAddressSchema = SchemaFactory.createForClass(ShippingAddress);
+
 @Schema({ timestamps: true, collection: 'orders' })
 export class Order {
   @Prop({ required: true, index: true })
@@ -86,6 +109,18 @@ export class Order {
     default: OrderStatus.PENDING,
   })
   status: string;
+
+  @Prop({ enum: ['COD', 'CARD'], default: 'COD' })
+  paymentMethod?: string;
+
+  @Prop({ type: ShippingAddressSchema })
+  shippingAddress?: ShippingAddress;
+
+  @Prop()
+  cardLast4?: string;
+
+  @Prop()
+  cardHolderName?: string;
 
   @Prop()
   paymentId: string;

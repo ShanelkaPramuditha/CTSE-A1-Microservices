@@ -172,6 +172,82 @@ export class CreateOrderDto {
   items: OrderItemDto[];
 }
 
+export class ShippingAddressDto {
+  @ApiProperty({ example: 'John Doe' })
+  @IsString()
+  @IsNotEmpty()
+  fullName: string;
+
+  @ApiProperty({ example: '0712345678' })
+  @IsString()
+  @IsNotEmpty()
+  phone: string;
+
+  @ApiProperty({ example: 'No 10, Main Street' })
+  @IsString()
+  @IsNotEmpty()
+  addressLine1: string;
+
+  @ApiPropertyOptional({ example: 'Apartment 2B' })
+  @IsOptional()
+  @IsString()
+  addressLine2?: string;
+
+  @ApiProperty({ example: 'Colombo' })
+  @IsString()
+  @IsNotEmpty()
+  city: string;
+
+  @ApiProperty({ example: '00100' })
+  @IsString()
+  @IsNotEmpty()
+  postalCode: string;
+}
+
+export class CardDetailsDto {
+  @ApiProperty({ example: 'John Doe' })
+  @IsString()
+  @IsNotEmpty()
+  cardHolderName: string;
+
+  @ApiProperty({ example: '4111111111111111' })
+  @IsString()
+  @IsNotEmpty()
+  cardNumber: string;
+
+  @ApiProperty({ example: '12' })
+  @IsString()
+  @IsNotEmpty()
+  expiryMonth: string;
+
+  @ApiProperty({ example: '2028' })
+  @IsString()
+  @IsNotEmpty()
+  expiryYear: string;
+
+  @ApiProperty({ example: '123' })
+  @IsString()
+  @IsNotEmpty()
+  cvv: string;
+}
+
+export class CheckoutDto {
+  @ApiProperty({ enum: ['COD', 'CARD'], example: 'COD' })
+  @IsEnum(['COD', 'CARD'])
+  paymentMethod: 'COD' | 'CARD';
+
+  @ApiProperty({ type: ShippingAddressDto })
+  @ValidateNested()
+  @Type(() => ShippingAddressDto)
+  address: ShippingAddressDto;
+
+  @ApiPropertyOptional({ type: CardDetailsDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CardDetailsDto)
+  card?: CardDetailsDto;
+}
+
 // --- Payment DTOs ---
 
 export class ProcessPaymentDto {

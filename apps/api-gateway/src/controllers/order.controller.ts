@@ -22,7 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
 import { ORDER_SERVICE, ORDER_PATTERNS } from '@app/common/constants';
-import { CreateOrderDto } from '@app/common/dto';
+import { CheckoutDto, CreateOrderDto } from '@app/common/dto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
@@ -53,10 +53,13 @@ export class OrderController {
   })
   @ApiResponse({ status: 201, description: 'Order placed successfully' })
   @ApiResponse({ status: 400, description: 'Cart is empty or insufficient stock' })
-  async checkout(@CurrentUser('userId') userId: string) {
+  async checkout(
+    @CurrentUser('userId') userId: string,
+    @Body() checkoutDto: CheckoutDto,
+  ) {
     this.logger.log(`Checkout requested by user: ${userId}`);
     return firstValueFrom(
-      this.orderClient.send(ORDER_PATTERNS.CHECKOUT, { userId }),
+      this.orderClient.send(ORDER_PATTERNS.CHECKOUT, { userId, checkoutDto }),
     );
   }
 

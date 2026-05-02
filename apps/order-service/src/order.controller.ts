@@ -8,6 +8,7 @@ import {
   AddCartItemDto,
   UpdateCartItemDto,
   RemoveCartItemDto,
+  CheckoutDto,
   CreateOrderDto,
 } from '@app/common/dto';
 import { OrderService } from './order.service';
@@ -67,9 +68,9 @@ export class OrderController {
    * validate stock → create order → clear cart → process payment
    */
   @MessagePattern(ORDER_PATTERNS.CHECKOUT)
-  checkout(@Payload() data: { userId: string }) {
+  checkout(@Payload() data: { userId: string; checkoutDto: CheckoutDto }) {
     this.logger.log(`[checkout] userId=${data.userId}`);
-    return this.orderService.checkout(data.userId);
+    return this.orderService.checkout(data.userId, data.checkoutDto);
   }
 
   /**
